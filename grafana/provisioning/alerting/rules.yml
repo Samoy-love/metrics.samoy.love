@@ -669,7 +669,15 @@ groups:
             datasourceUid: samoylove-prometheus
             relativeTimeRange: { from: 900, to: 0 }
             model:
-              expr: 'rate(node_pressure_memory_stalled_seconds_total{job="node-host"}[5m]) > 0.05'
+              # ТРЭШ ХОСТА, А НЕ ЛЮБОЕ ОЖИДАНИЕ (27.09.2026). Системный PSI включает
+              # торможение любого контейнера на его собственном memory.high: раннер
+              # CI, упёршийся в свои 3,5 ГиБ, давал хосту десятки процентов при
+              # 16 ГиБ свободной памяти. До 27.09 будило и уплотнение памяти под
+              # крупные страницы (THP defrag=madvise; с тех пор defer — Home Server,
+              # configs/tmpfiles/thp-defrag.conf). Настоящий трэш хоста — 75 % 22.09
+              # и 97 % 26.09; под обычной нагрузкой CI с defer — 1–5 %. Кто ждёт
+              # память в проде — отдельное правило ProdMemoryPressure.
+              expr: 'rate(node_pressure_memory_stalled_seconds_total{job="node-host"}[5m]) > 0.2'
               instant: true
               refId: A
           - refId: C
@@ -688,7 +696,40 @@ groups:
         execErrState: Error
         for: 10m
         labels: { severity: warning }
-        annotations: { summary: "Host tasks stall on memory more than 5% of the time", description: "Все задачи хоста больше 5% времени ждут память (PSI). За неделю до 19.09.2026 максимум был 7,7%. Кто съел — панель «Память инстансов» на дашборде железа; частый виновник — cs2-render с открытой игрой." }
+        annotations: { summary: "All host tasks stall on memory more than 20% of the time — the host is thrashing", description: "Все задачи хоста больше 20% времени ждут память (PSI full): это трэш, как 22.09 (75%) и 26.09 (97%). Кто ждёт — панель «Давление на память по контейнерам»; прод отдельно тревожит ProdMemoryPressure. Кто съел — панель «Память инстансов» на дашборде железа; частый виновник — cs2-render с открытой игрой." }
+
+      - uid: hw-prod-memory-pressure
+        title: ProdMemoryPressure
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange: { from: 900, to: 0 }
+            model:
+              # Давление на память внутри самого прода (cs2, web) и служб хоста —
+              # по их cgroup (сборщик cgroup-cpu-collect, с 27.09.2026). Раннеры CI
+              # и рендер сюда не входят: их упор в свой потолок — их дело, и
+              # автомасштабирование CI снимает раннеры по тем же cgroup (psi_watch).
+              expr: 'rate(incus_cgroup_memory_stall_seconds_total{kind="full",name=~"cs2|web|host:system.slice"}[5m]) > 0.05'
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [-1000000000] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "Production ({{ $labels.name }}) stalls on memory more than 5% of the time", description: "Все задачи {{ $labels.name }} больше 5% времени ждут память: страдают сайт, базы или службы хоста. Упор раннеров CI в свой потолок сюда не входит. Кто занял память — панели «Давление на память по контейнерам» и «Память по инстансам».", __dashboardUid__: "samoylove-hardware", __panelId__: "80" }
 
       - uid: hw-host-global-oom
         title: HostGlobalOOM

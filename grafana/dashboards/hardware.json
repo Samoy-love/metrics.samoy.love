@@ -4113,6 +4113,52 @@
         },
         "overrides": []
       }
+    },
+    {
+      "type": "timeseries",
+      "title": "Давление на память по контейнерам (PSI full)",
+      "description": "Доля времени, когда все задачи контейнера ждали память (incus_cgroup_memory_stall_seconds_total, сборщик cgroup-cpu-collect на хосте). В отличие от давления хоста, здесь видно, кто именно ждёт: раннер CI, упёршийся в свой memory.high, давит на хост, но не на прод. host:system.slice — службы самого хоста.",
+      "id": 80,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 166
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(incus_cgroup_memory_stall_seconds_total{kind=\"full\"}[5m]) > 0.001",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
     }
   ]
 }
