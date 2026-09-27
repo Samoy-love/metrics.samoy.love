@@ -4423,7 +4423,10 @@ groups:
               # контроллер считает поднятым и зарегистрированным (свободен или
               # занят), с тем, что видит GitHub. min за 5 минут: одноразовый
               # раннер на секунды уходит в offline при каждом откате.
-              expr: 'min_over_time(((sum(ci_autoscaler_slots{state=~"idle|busy"}) or vector(0)) - (sum(ci_runners{os="linux",status="online"}) or vector(0)))[5m:30s]) >= 2'
+              # НЕ WINDOWS, А НЕ os="linux" (27.09.2026). Раннеры из scale set GitHub
+              # отдаёт с os="unknown", и с 25.09.2026 правило видело ноль Linux-раннеров
+              # в онлайне при шести живых: тревога горела двое суток, пока задания шли.
+              expr: 'min_over_time(((sum(ci_autoscaler_slots{state=~"idle|busy"}) or vector(0)) - (sum(ci_runners{os!="windows",status="online"}) or vector(0)))[5m:30s]) >= 2'
               instant: true
               refId: A
           - refId: C
