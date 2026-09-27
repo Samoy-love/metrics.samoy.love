@@ -2877,6 +2877,101 @@ groups:
         for: 30m
         labels: { severity: warning }
         annotations: { summary: "Работник {{ $labels.worker }} шесть часов не сделал ни одного дела, хотя его ждут дела", description: "Работник запущен, очередь у него непустая (cs2_worker_backlog), а следов работы в базе шесть часов нет: круг падает молча. Для игрока это затор в цепочке без единой ошибки в журнале. Тишина при пустой очереди — норма (никто не играл) и тревогой не считается: до 11.09.2026 правило этого не различало и горело весь вечер.", __dashboardUid__: "samoylove-cs2", __panelId__: "401" }
+      - uid: cs2-worker-mark-silent
+        title: "CS2: фоновый работник молчит"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              # Работники с отметкой удачного круга в service_marks (worker:<имя>), у
+              # которых нет очереди: общее правило «работник цепочки молчит» требует
+              # непустой cs2_worker_backlog и их не видит. Порог у каждого — не меньше
+              # двух пропущенных кругов, чтобы одна заминка чужой стороны не будила
+              # (МЕТРИКИ.md, «Работники и их отметки»):
+              #   блокировки, уровни, профили — круг час, порог три часа; у частей
+              #     рубильник один, cs2_worker_enabled{worker="профили"};
+              #   faceit — круг полчаса, порог два часа;
+              #   друзья — долгий опрос 25 с, порог 15 минут;
+              #   пересчёт — круг 15 минут, порог час;
+              #   аватары — проход раз в сутки на сайте, порог 50 часов, рубильника нет.
+              # профиль_вошедшего не тревожит намеренно: сбор идёт, только когда человек
+              # входит или жмёт «обновить», и тишина значит «никто не входил».
+              # Ряд, оставшийся от времени, когда ключ был, не будит: сверка с
+              # cs2_worker_enabled того же работника.
+              expr: |
+                (
+                  (time() - max by (worker) (cs2_worker_last_success_timestamp_seconds{worker=~"блокировки|уровни|профили"}) > 10800)
+                    and on() (max(cs2_worker_enabled{worker="профили"}) == 1)
+                )
+                or (
+                  (time() - max by (worker) (cs2_worker_last_success_timestamp_seconds{worker="faceit"}) > 7200)
+                    and on(worker) (max by (worker) (cs2_worker_enabled{worker="faceit"}) == 1)
+                )
+                or (
+                  (time() - max by (worker) (cs2_worker_last_success_timestamp_seconds{worker="друзья"}) > 900)
+                    and on(worker) (max by (worker) (cs2_worker_enabled{worker="друзья"}) == 1)
+                )
+                or (
+                  (time() - max by (worker) (cs2_worker_last_success_timestamp_seconds{worker="пересчёт"}) > 3600)
+                    unless on(worker) (max by (worker) (cs2_worker_enabled{worker="пересчёт"}) == 0)
+                )
+                or (time() - max by (worker) (cs2_worker_last_success_timestamp_seconds{worker="аватары"}) > 180000)
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [-1000000000] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 15m
+        labels: { severity: warning }
+        annotations: { summary: "Работник {{ $labels.worker }} давно не отметил ни одного удачного круга", description: "Сайт отвечает, но данные этого работника перестали свежеть: блокировки, уровни и профили — наблюдения о встреченных и профили игроков; faceit — ELO на профилях; друзья — матчи через бота в друзьях приходят только кругом кодов, с опозданием; пересчёт — старые числа на страницах после смены разбора; аватары — кэш аватаров растёт без уборки. Смотреть журнал cs2-chain (у аватаров — cs2-api) по имени работника: круг падает молча или обрывается отказом чужой стороны.", __dashboardUid__: "samoylove-cs2", __panelId__: "401" }
+      - uid: cs2-worker-mark-absent
+        title: "CS2: запущенный работник ни разу не отметился"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              # Отметки нет вовсе — ряда cs2_worker_last_success_timestamp_seconds у
+              # работника нет, хотя cs2_worker_enabled говорит, что он запущен. Правило
+              # выше такой случай не видит: сравнивать не с чем. Шесть часов — больше
+              # любого круга из списка выше, кроме аватаров (у них рубильника нет,
+              # и отсутствие их ряда видно на панели). Если молчит вся цепочка, рядом
+              # горит «цепочка не отвечает на сбор»: тогда пропадают и отметки, и
+              # cs2_worker_enabled, и это правило молчит.
+              expr: 'max by (worker) (cs2_worker_enabled{worker=~"профили|faceit|друзья|пересчёт"}) == 1 unless on(worker) max by (worker) (cs2_worker_last_success_timestamp_seconds)'
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [-1000000000] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 6h
+        labels: { severity: warning }
+        annotations: { summary: "Работник {{ $labels.worker }} запущен, а удачного круга не отметил ни разу", description: "Либо работник падает на каждом круге с самого запуска, либо отметка в service_marks не пишется (нет прав, другая база). Для человека это то же, что молчащий работник: данные не свежеют. Смотреть журнал cs2-chain по имени работника и строку worker:{{ $labels.worker }} в service_marks.", __dashboardUid__: "samoylove-cs2", __panelId__: "401" }
       - uid: cs2-queue-stuck
         title: "CS2: разбор матчей встал"
         condition: C
@@ -3314,6 +3409,43 @@ groups:
         for: 15m
         labels: { severity: warning }
         annotations: { summary: "Самый старый заказ клипа ждёт дольше получаса", description: "Заказы есть, а работник рендера их не берёт: контейнер cs2-render выключен, служба упала, Steam не вошёл или игра не поднялась после обновления. Для человека это клип, который «готовится» бесконечно. Смотреть systemctl status cs2-render и экран игры по VNC в /admin; задание с истёкшей арендой работник переберёт сам после перезапуска.", __dashboardUid__: "samoylove-cs2", __panelId__: "903" }
+      - uid: cs2-render-promo-late
+        title: "CS2: промо не успевает к сводке неделю подряд"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              # Не авария, а порог мощности: доля промо, снятых до сводки сессии, ниже
+              # 95% ВСЮ неделю (максимум за семь суток ниже порога) — пора третья машина
+              # (КОНСТРУКТОР-РОЛИКОВ, «Мощность рендера»). Метрика — скользящие сутки,
+              # так что неделя берётся подзапросом по часу, а не for: 7d, который
+              # обнуляется перезапуском Grafana. Условие на число часов с промо —
+              # чтобы новая метрика или неделя почти без промо не решали по двум
+              # заданиям. Ожидание по классам (cs2_render_waiting_seconds) отдельной
+              # тревоги не получает: стоящую очередь ловит «очередь клипов стоит», а
+              # нехватку мощности — это правило.
+              expr: 'max_over_time((max(cs2_render_promo_day{state="in_time"}) / (sum(max by (state) (cs2_render_promo_day)) > 0))[7d:1h]) < 0.95 and count_over_time((sum(max by (state) (cs2_render_promo_day)) > 0)[7d:1h]) >= 120'
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [-1000000000] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 1h
+        labels: { severity: warning }
+        annotations: { summary: "Неделю подряд больше 5% промо снимаются уже после сводки сессии", description: "Опоздавшее промо в Telegram не уходит: человек получает сводку без ролика. Две машины не справляются с вечерним пиком — пора третья (КОНСТРУКТОР-РОЛИКОВ, «Мощность рендера»). Сначала глянуть «Ожидание по классам» и «Машины рендера: отметка»: если одна машина всю неделю молчала, дело не в мощности.", __dashboardUid__: "samoylove-cs2", __panelId__: "1604" }
       - uid: cs2-clip-storage-low
         title: "CS2: место под клипы кончается"
         condition: C
@@ -3379,7 +3511,7 @@ groups:
         execErrState: Error
         for: 24h
         labels: { severity: warning }
-        annotations: { summary: "Меньше 90% заданий рендера за неделю прошли с первой попытки (машина — метка engine)", description: "Клипы в итоге доходят, но каждый повтор — лишние минуты, пока игрок ждёт. Какая причина выросла, видно в cs2_render_retries_week по той же машине: перемотка, камера, падение игры, HLAE, диск. Частый повод — обновление CS2 или выкатка посреди задания.", __dashboardUid__: "samoylove-cs2", __panelId__: "910" }
+        annotations: { summary: "Меньше 90% заданий рендера за неделю прошли с первой попытки (машина — метка engine)", description: "Клипы в итоге доходят, но каждый повтор — лишние минуты, пока игрок ждёт. Какая причина выросла, видно в cs2_render_retries_week по той же машине (панель «Рендер с первого раза: причины повторов»): перемотка, камера, падение игры, HLAE, диск, потолок времени (timeout). Частый повод — обновление CS2 или выкатка посреди задания.", __dashboardUid__: "samoylove-cs2", __panelId__: "910" }
       - uid: cs2-render-engine-broken
         title: "CS2: движок съёмки сломан"
         condition: C
@@ -3713,7 +3845,7 @@ groups:
         execErrState: Error
         for: 1h
         labels: { severity: critical }
-        annotations: { summary: "Разборы откладываются больше часа: ClickHouse не принимает запись", description: "Свежие матчи не появляются ни на сайте, ни в боте. Задания при этом не пропадают: каждое ждёт и пробует снова. Смотреть ClickHouse в контейнере cs2: жив ли, есть ли место, нет ли TOO_MANY_PARTS в журнале cs2-chain." }
+        annotations: { summary: "Разборы откладываются больше часа: ClickHouse не принимает запись", description: "Свежие матчи не появляются ни на сайте, ни в боте. Задания при этом не пропадают: каждое ждёт и пробует снова. Смотреть ClickHouse в контейнере cs2: жив ли, есть ли место, нет ли TOO_MANY_PARTS в журнале cs2-chain.", __dashboardUid__: "samoylove-cs2", __panelId__: "1502" }
 
       - uid: cs2-parse-failed-seen
         title: "CS2: упавшие разборы спрятали матчи"
@@ -3742,7 +3874,7 @@ groups:
         execErrState: Error
         for: 6h
         labels: { severity: warning }
-        annotations: { summary: "Есть упавшие разборы уже виденных матчей", description: "Человек этот матч уже видел, а теперь он пропал со страниц: перезапись стёрла старые строки и не записала новые. Сам матч не вернётся, пока разбор не пройдёт. Причину искать в parse_jobs.error у упавших заданий." }
+        annotations: { summary: "Есть упавшие разборы уже виденных матчей", description: "Человек этот матч уже видел, а теперь он пропал со страниц: перезапись стёрла старые строки и не записала новые. Сам матч не вернётся, пока разбор не пройдёт. Причину искать в parse_jobs.error у упавших заданий.", __dashboardUid__: "samoylove-cs2", __panelId__: "1503" }
 
       - uid: cs2-parse-deleting-stuck
         title: "CS2: удаление матча застряло"
@@ -3771,7 +3903,7 @@ groups:
         execErrState: Error
         for: 2h
         labels: { severity: warning }
-        annotations: { summary: "Удаление матча оборвалось и не доделано", description: "Данные, которые человек просил стереть, всё ещё лежат. Подметальщик не справился за час: смотреть журнал cs2-chain (recheck) и доделывать руками." }
+        annotations: { summary: "Удаление матча оборвалось и не доделано", description: "Данные, которые человек просил стереть, всё ещё лежат. Подметальщик не справился за час: смотреть журнал cs2-chain (recheck) и доделывать руками.", __dashboardUid__: "samoylove-cs2", __panelId__: "1504" }
 
       - uid: cs2-reconcile-mismatch
         title: "CS2: базы и диск разошлись"
@@ -3782,7 +3914,8 @@ groups:
             relativeTimeRange: { from: 600, to: 0 }
             model:
               # parse_missing сюда не входит: такие матчи сверка сама ставит на разбор
-              # заново, и для них есть отдельное правило с порогом.
+              # заново, и для них есть отдельное правило с порогом. summary тоже:
+              # это не расхождение хранилищ, а регресс разбора, правило своё.
               expr: 'cs2_reconcile_mismatches{kind=~"clickhouse_orphan|file_orphan|row_no_file"} > 0'
               instant: true
               refId: A
@@ -3802,7 +3935,7 @@ groups:
         execErrState: Error
         for: 1h
         labels: { severity: warning }
-        annotations: { summary: "Ночная сверка нашла расхождение баз и диска (вид — метка kind)", description: "Сверка только считает, удалять данные без человека ей нельзя. clickhouse_orphan — строки матча без задания, file_orphan — файл демки без записи, row_no_file — запись без файла, то есть демку уже не перечитать. Разбирать руками, начиная с row_no_file." }
+        annotations: { summary: "Ночная сверка нашла расхождение баз и диска (вид — метка kind)", description: "Сверка только считает, удалять данные без человека ей нельзя. clickhouse_orphan — строки матча без задания, file_orphan — файл демки без записи, row_no_file — запись без файла, то есть демку уже не перечитать. Разбирать руками, начиная с row_no_file.", __dashboardUid__: "samoylove-cs2", __panelId__: "1505" }
 
       - uid: cs2-reconcile-parse-missing
         title: "CS2: много матчей без строк в ClickHouse"
@@ -3831,7 +3964,41 @@ groups:
         execErrState: Error
         for: 1h
         labels: { severity: warning }
-        annotations: { summary: "Больше десяти матчей помечены разобранными, а строк у них нет", description: "Сверка сама ставит их на разбор заново, но пока разбор не пройдёт, у людей пустые страницы матчей. Один-два — случайность, десяток — ClickHouse терял запись. Проверить, что повторные разборы проходят, и искать, куда делись строки." }
+        annotations: { summary: "Больше десяти матчей помечены разобранными, а строк у них нет", description: "Сверка сама ставит их на разбор заново, но пока разбор не пройдёт, у людей пустые страницы матчей. Один-два — случайность, десяток — ClickHouse терял запись. Проверить, что повторные разборы проходят, и искать, куда делись строки.", __dashboardUid__: "samoylove-cs2", __panelId__: "1505" }
+
+      - uid: cs2-reconcile-summary
+        title: "CS2: разбор разошёлся со сводкой Valve"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              # Ночная сверка сравнивает убийства, смерти, помощь и счёт матчей,
+              # разобранных за трое суток, со сводкой Game Coordinator. У исправного
+              # разбора расхождений нет, так что порог — ноль: любое число после выкатки
+              # или обновления CS2 значит, что разбор считает не то. Значение держится
+              # сутки до следующей сверки; час — чтобы пересчёт посреди выкатки не будил.
+              expr: 'max(cs2_reconcile_mismatches{kind="summary"}) > 0'
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [-1000000000] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 1h
+        labels: { severity: warning }
+        annotations: { summary: "Ночная сверка нашла матчи, где разбор не совпал со сводкой Valve", description: "У людей на страницах матча не те убийства, смерти или счёт, что показывает сама игра. Обычная причина — обновление CS2 или свежая выкатка разбора. Первые двадцать расхождений (матч, номер GC, SteamID, два числа) — в журнале cs2-chain у recheck; сверить с демкой и чинить разбор, данные сами не правятся.", __dashboardUid__: "samoylove-cs2", __panelId__: "1505" }
 
       - uid: cs2-pg-dump-old
         title: "CS2: дамп Postgres давно не снимался"
@@ -3841,7 +4008,11 @@ groups:
             datasourceUid: samoylove-prometheus
             relativeTimeRange: { from: 600, to: 0 }
             model:
-              expr: 'cs2_pg_dump_age_seconds > 129600'
+              # 26 часов: дамп ежедневный, и два часа запаса покрывают разброс
+              # таймера и длительность самого дампа. Полтора суток (прежний
+              # порог) означали, что о пропущенном дампе узнаёшь к вечеру
+              # следующего дня, когда без копии прожиты уже сутки.
+              expr: 'cs2_pg_dump_age_seconds > 93600'
               instant: true
               refId: A
           - refId: C
@@ -3860,7 +4031,7 @@ groups:
         execErrState: Error
         for: 30m
         labels: { severity: warning }
-        annotations: { summary: "Последний удачный дамп Postgres старше полутора суток", description: "Дамп снимается каждый день, значит, минимум один не удался. Если сейчас потерять базу, пропадут учётные записи, коды и очередь с последнего дампа. Смотреть cs2-pgdump в контейнере cs2: таймер, журнал, место под дампы." }
+        annotations: { summary: "Последний удачный дамп Postgres старше 26 часов", description: "Дамп снимается каждый день, значит, вчерашний не удался. Если сейчас потерять базу, пропадут учётные записи, коды и очередь с последнего дампа. Смотреть cs2-pgdump в контейнере cs2: таймер, журнал, место под дампы.", __dashboardUid__: "samoylove-cs2", __panelId__: "1501" }
 
       - uid: cs2-pg-dump-absent
         title: "CS2: отметки дампа Postgres нет"
@@ -3892,7 +4063,7 @@ groups:
         execErrState: Error
         for: 48h
         labels: { severity: warning }
-        annotations: { summary: "Сервис не видит ни одного удачного дампа Postgres", description: "Похоже, резервной копии базы нет вовсе. Проверить, что таймер cs2-pgdump включён в контейнере cs2 и что скрипт пишет отметку в service_marks. Если лежит сам сайт, рядом горит «сайт не отвечает» — начинать с него." }
+        annotations: { summary: "Сервис не видит ни одного удачного дампа Postgres", description: "Похоже, резервной копии базы нет вовсе. Проверить, что таймер cs2-pgdump включён в контейнере cs2 и что скрипт пишет отметку в service_marks. Если лежит сам сайт, рядом горит «сайт не отвечает» — начинать с него.", __dashboardUid__: "samoylove-cs2", __panelId__: "1501" }
 
       - uid: cs2-pg-connections
         title: "CS2: соединения Postgres на исходе"
@@ -4008,7 +4179,7 @@ groups:
         execErrState: Error
         for: 10m
         labels: { severity: warning }
-        annotations: { summary: "Машина рендера {{ $labels.engine }} молчит больше 10 минут", description: "Её задания без камер уже уходят другим машинам, а ролики с камерами повтора ждут. Смотреть, жив ли работник: на cs2-render это служба в контейнере, на cs2-win — задача планировщика cs2-render и C:\\cs2\\logs\\render.log." }
+        annotations: { summary: "Машина рендера {{ $labels.engine }} молчит больше 10 минут", description: "Её задания без камер уже уходят другим машинам, а ролики с камерами повтора ждут. Смотреть, жив ли работник: на cs2-render это служба в контейнере, на cs2-win — задача планировщика cs2-render и C:\\cs2\\logs\\render.log.", __dashboardUid__: "samoylove-cs2", __panelId__: "1601" }
 
       - uid: cs2-render-mode-mismatch
         title: "CS2: режим машины рендера не совпадает с сервисом"
@@ -4018,7 +4189,10 @@ groups:
             datasourceUid: samoylove-prometheus
             relativeTimeRange: { from: 600, to: 0 }
             model:
-              expr: 'cs2_render_mode_mismatch == 1'
+              # Обратное расхождение: публичная машина при лабораторном сервисе. Оно
+              # только теряет лабораторные ассеты, поэтому warning; опасный случай —
+              # правило ниже.
+              expr: 'cs2_render_mode_mismatch == 1 unless on() cs2_service_mode{mode="public"} == 1'
               instant: true
               refId: A
           - refId: C
@@ -4037,7 +4211,42 @@ groups:
         execErrState: Error
         for: 15m
         labels: { severity: warning }
-        annotations: { summary: "Режим машины рендера {{ $labels.engine }} не совпадает с режимом сервиса", description: "Лабораторная машина при публичном сервисе кладёт в ролики ассеты без лицензии. Поправить CS2_MODE в настройках машины и перезапустить работника." }
+        annotations: { summary: "Режим машины рендера {{ $labels.engine }} не совпадает с режимом сервиса", description: "Сервис лабораторный, а машина — нет: ролики с неё выходят без лабораторных ассетов. Вреда людям нет, но решено было иначе. Поправить CS2_MODE в настройках машины и перезапустить работника.", __dashboardUid__: "samoylove-cs2", __panelId__: "1602" }
+
+      - uid: cs2-render-lab-at-public
+        title: "CS2: лабораторная машина рендера при публичном сервисе"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              # Машина в лабораторном режиме (CS2_MODE) при публичном сервисе берёт в
+              # ролики ассеты без лицензии — ровно то, что рубильник режимов должен был
+              # выключить. cs2_render_mode_mismatch различает только «совпадает или нет»;
+              # сервис публичный, значит, машина — не публичная. Пять минут — отметка
+              # машины идёт раз в полминуты, и перезапуск со старыми настройками не
+              # успевает загореться.
+              expr: 'cs2_render_mode_mismatch == 1 and on() cs2_service_mode{mode="public"} == 1'
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [-1000000000] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        labels: { severity: critical }
+        annotations: { summary: "Машина рендера {{ $labels.engine }} в лабораторном режиме, а сервис публичный", description: "Ролики с этой машины кладут музыку, картинки и голоса без лицензии и уходят людям в публичный сервис. Сразу: остановить работника на этой машине (задания без камер уйдут другой), затем поставить CS2_MODE=public в её настройках и запустить снова. Уже снятые ролики с лабораторными ассетами найти по render_jobs этой машины после смены режима сервиса.", __dashboardUid__: "samoylove-cs2", __panelId__: "1602" }
 
       - uid: cs2-container-unit-failed
         title: "CS2: в контейнере упала служба"

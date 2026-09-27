@@ -2404,7 +2404,7 @@
     {
       "type": "timeseries",
       "title": "Сколько молчит работник",
-      "description": "Часы с последнего полезного дела, по следам в базе. Самоотчёт здесь не годится: он умирает вместе с работником, то есть пропадает ровно тогда, когда нужен.",
+      "description": "Часы с последнего полезного дела. У шагов цепочки — по следам в базе, у фоновых работников (блокировки, уровни, профили, faceit, друзья, пересчёт, аватары, профиль_вошедшего) — по отметке удачного круга в service_marks. Самоотчёт из памяти здесь не годится: он умирает вместе с работником, то есть пропадает ровно тогда, когда нужен. Ряда нет — отметки не было ни разу.",
       "targets": [
         {
           "refId": "A",
@@ -6501,6 +6501,665 @@
             "showPoints": "never",
             "spanNulls": true
           }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Сохранность данных",
+      "id": 1500,
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 253
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Резервные копии",
+      "id": 1501,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 254
+      },
+      "description": "Сколько прошло с последнего удачного дампа Postgres (cs2-pgdump пишет отметку в service_marks). Дамп ежедневный: больше 26 часов — вчерашний не удался, и тревога будит. «Дампа не было ни разу» — ряда нет вовсе: резервной копии учёток, кодов и заказов нет совсем, об этом отдельная тревога через двое суток.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(cs2_pg_dump_age_seconds)",
+          "legendFormat": "с последнего дампа"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "noValue": "дампа не было ни разу",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 93600
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Сохранность: отложенные разборы",
+      "id": 1502,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 254
+      },
+      "description": "Задания разбора, отложенные после отказа ClickHouse: попытка не потрачена, повтор с паузой до получаса. Больше нуля дольше часа — хранилище не принимает запись, свежие матчи не появляются ни на сайте, ни в боте.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(cs2_parse_postponed)",
+          "legendFormat": "отложено"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "нет данных от сервиса",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Сохранность: спрятанные матчи",
+      "id": 1503,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 254
+      },
+      "description": "Упавшие разборы у матчей, которые человек уже видел: перезапись сначала снимает старые строки, и матч спрятан со страниц, пока разбор не пройдёт. Возврат упавших после смены разбора лечит их сам; здесь то, что не вылечилось.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(cs2_parse_failed_seen)",
+          "legendFormat": "спрятано"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "нет данных от сервиса",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Сохранность: удаления",
+      "id": 1504,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 254
+      },
+      "description": "Удаления матчей, оборванные посередине и не доведённые подметальщиком за час: данные, которые просили стереть, всё ещё лежат. Доводить руками.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(cs2_parse_deleting_stuck)",
+          "legendFormat": "застряло"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "нет данных от сервиса",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Сохранность: сверка",
+      "id": 1505,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 259
+      },
+      "description": "Ночная сверка Postgres, ClickHouse и диска по виду. parse_missing — задание done, строк матча нет (ставится на разбор заново само); clickhouse_orphan — строки без задания; file_orphan — файл демки без записи; row_no_file — запись без файла, демку уже не перечитать; summary — разбор разошёлся со сводкой Game Coordinator по счёту или K/D/A (матчи за трое суток): больше нуля после выкатки или обновления CS2 — регресс разбора. Кроме parse_missing, ничего не чинится само — только счёт.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (kind) (cs2_reconcile_mismatches)",
+          "legendFormat": "{{kind}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "noValue": "нет данных от сервиса",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Машины рендера и очередь по классам",
+      "id": 1600,
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 267
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Машины рендера: отметка",
+      "id": 1601,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 268
+      },
+      "description": "Сколько секунд машина рендера не отмечалась (отметка раз в полминуты). Дольше десяти минут — машина выключена или зависла, и её задания без камер уходят любой другой; ролики с камерами повтора ждут. Машина, которая не отмечалась ни разу, здесь не видна вовсе.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (engine) (cs2_render_heartbeat_age_seconds)",
+          "legendFormat": "{{engine}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "noValue": "нет данных от сервиса",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 120
+              },
+              {
+                "color": "red",
+                "value": 600
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Машины рендера: режим",
+      "id": 1602,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 268
+      },
+      "description": "Совпадает ли режим машины рендера (CS2_MODE) с режимом сервиса. Лабораторная машина при публичном сервисе кладёт в ролики ассеты без лицензии — тревога critical; обратное расхождение только теряет лабораторные ассеты — warning.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (engine) (cs2_render_mode_mismatch)",
+          "legendFormat": "{{engine}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "нет данных от сервиса",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "совпадает",
+                  "index": 0
+                },
+                "1": {
+                  "text": "не совпадает",
+                  "index": 1
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Ожидание по классам",
+      "id": 1603,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 268
+      },
+      "description": "Сколько ждёт самое старое задание, которое можно взять прямо сейчас, по классу (promo, order, paid) и движку. Ждущие повтора и задания сломанного движка не в счёт. Промо дольше получаса каждый вечер — пора третья машина (КОНСТРУКТОР-РОЛИКОВ, «Мощность рендера»); это решение по мощности, а не авария, поэтому отдельной тревоги нет: стоящую очередь ловит «очередь клипов стоит», нехватку мощности — «промо не успевает к сводке».",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (class, engine) (cs2_render_waiting_seconds) > 0",
+          "legendFormat": "{{class}} · {{engine}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "noValue": "нет данных от сервиса",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1800
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Промо успевает к сводке",
+      "id": 1604,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 276
+      },
+      "description": "Доля промо за сутки, снятых до сводки сессии (in_time), и сами числа: после сводки (late) и закрыто по сроку (expired). Опоздавшее промо в Telegram уже не уходит. Доля ниже 95% неделю подряд — порог третьей машины, тревога warning.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(cs2_render_promo_day{state=\"in_time\"}) / (sum(max by (state) (cs2_render_promo_day)) > 0)",
+          "legendFormat": "успели к сводке"
+        },
+        {
+          "refId": "B",
+          "expr": "max by (state) (cs2_render_promo_day)",
+          "legendFormat": "{{state}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "noValue": "нет данных от сервиса",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.95
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "max"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 40
+              },
+              {
+                "id": "custom.thresholdsStyle",
+                "value": {
+                  "mode": "off"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Рендер с первого раза: причины повторов",
+      "id": 1605,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 276
+      },
+      "description": "Неудачные попытки за неделю по машине и причине: seek — игра не приняла перемотку, camera — камера не встала, camera_drift — ушла посреди записи, demo_load, game_crash, startmovie, hlae, encode, disk, lease — работника погасили посреди задания, timeout — задание не уложилось в свой потолок времени (с 27.09.2026 отдельно; раньше пряталось в game_crash, seek или encode). Смотреть, когда падает доля «с первого раза»: какая причина выросла. Своей тревоги у причин нет — будит сама доля ниже 0,9.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (engine, reason) (cs2_render_retries_week) > 0",
+          "legendFormat": "{{engine}} · {{reason}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "noValue": "нет данных от сервиса",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "decimals": 0
         },
         "overrides": []
       }
