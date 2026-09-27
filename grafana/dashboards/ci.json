@@ -296,7 +296,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(ci_runners{os=\"linux\",status=\"online\"}) or vector(0)"
+          "expr": "sum(ci_runners{os!=\"windows\",status=\"online\"}) or vector(0)"
         }
       ],
       "options": {
@@ -845,7 +845,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "clamp_max(sum(ci_jobs_running{pool=~\"home-linux|home-light|set-heavy|set-light\"}) / clamp_min(sum(ci_runners{os=\"linux\",status=\"online\"}), 1), 1)",
+          "expr": "clamp_max(sum(ci_jobs_running{pool=~\"home-linux|home-light|set-heavy|set-light\"}) / clamp_min(sum(ci_runners{os!=\"windows\",status=\"online\"}), 1), 1)",
           "legendFormat": "занято"
         }
       ],
@@ -901,7 +901,7 @@
         },
         {
           "refId": "C",
-          "expr": "sum(ci_runners{os=\"linux\",status=\"online\"})",
+          "expr": "sum(ci_runners{os!=\"windows\",status=\"online\"})",
           "legendFormat": "раннеров онлайн"
         },
         {
