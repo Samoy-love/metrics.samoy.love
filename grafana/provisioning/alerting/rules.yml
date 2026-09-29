@@ -678,7 +678,17 @@ groups:
               # configs/tmpfiles/thp-defrag.conf). Настоящий трэш хоста — 75 % 22.09
               # и 97 % 26.09; под обычной нагрузкой CI с defer — 1–5 %. Кто ждёт
               # память в проде — отдельное правило ProdMemoryPressure.
-              expr: 'rate(node_pressure_memory_stalled_seconds_total{job="node-host"}[5m]) > 0.2'
+              #
+              # МИНУС САМОТОРМОЖЕНИЕ РАННЕРА (29.09.2026). Порог 20 % раннер всё
+              # равно перебивал: ci-runner-5 на своём memory.high давал хосту 42–59 %
+              # при 19–22 ГиБ свободных (29.09, 12:12 и 13:42–13:52 МСК), и тревога
+              # горела 33 раза за неделю. Из PSI хоста вычитается PSI full самого
+              # тормозящего раннера CI (incus_cgroup_memory_stall_seconds_total, сбор
+              # по cgroup с 28.09): у одного раннера, упёршегося в свой потолок, почти
+              # весь «full» хоста — его собственный. Прод и рендер не вычитаются.
+              # Настоящая нехватка ловится и без вычета — если свободно меньше 10 %.
+              # Проверено на неделе истории: 22.09 и 26.09 остаются, 29.09 уходят.
+              expr: '(rate(node_pressure_memory_stalled_seconds_total{job="node-host"}[5m]) - on() group_left() (max(rate(incus_cgroup_memory_stall_seconds_total{kind="full",name=~"ci-(runner|light).*"}[5m])) or vector(0))) > 0.2 or (rate(node_pressure_memory_stalled_seconds_total{job="node-host"}[5m]) > 0.2 and on() (node_memory_MemAvailable_bytes{job="node-host"} / node_memory_MemTotal_bytes{job="node-host"}) < 0.1)'
               instant: true
               refId: A
           - refId: C
@@ -697,7 +707,7 @@ groups:
         execErrState: Error
         for: 10m
         labels: { severity: warning, area: server }
-        annotations: { summary: "Все задачи хоста стоят в ожидании памяти больше 20% времени", description: "Все задачи хоста больше 20% времени ждут память (PSI full): это трэш, как 22.09 (75%) и 26.09 (97%). Кто ждёт — панель «Давление на память по контейнерам»; прод отдельно тревожит «Сервер: прод ждёт память». Кто съел — панель «Память инстансов» на дашборде железа; частый виновник — cs2-render с открытой игрой.", value: "{{ humanizePercentage $values.A.Value }}", threshold: "больше 20%, держится 10 мин", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#hw-memory-pressure", __dashboardUid__: "samoylove-hardware", __panelId__: "40" }
+        annotations: { summary: "Все задачи хоста стоят в ожидании памяти больше 20% времени", description: "Все задачи хоста больше 20% времени ждут память (PSI full, без самоторможения раннеров CI на их собственном потолке): это трэш, как 22.09 (75%) и 26.09 (97%). Кто ждёт — панель «Давление на память по контейнерам»; прод отдельно тревожит «Сервер: прод ждёт память». Кто съел — панель «Память инстансов» на дашборде железа; частый виновник — cs2-render с открытой игрой.", value: "{{ humanizePercentage $values.A.Value }}", threshold: "больше 20%, держится 10 мин", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#hw-memory-pressure", __dashboardUid__: "samoylove-hardware", __panelId__: "40" }
 
       - uid: hw-prod-memory-pressure
         title: "Сервер: прод ждёт память"

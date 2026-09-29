@@ -849,12 +849,12 @@ rate(node_vmstat_pswpin{job="node-host"}[5m]) > 1000 and rate(node_vmstat_pswpou
 
 **Что случилось.** Все задачи хоста стоят в ожидании памяти больше 20% времени
 
-**Что это значит и что делать.** Все задачи хоста больше 20% времени ждут память (PSI full): это трэш, как 22.09 (75%) и 26.09 (97%). Кто ждёт — панель «Давление на память по контейнерам»; прод отдельно тревожит «Сервер: прод ждёт память». Кто съел — панель «Память инстансов» на дашборде железа; частый виновник — cs2-render с открытой игрой.
+**Что это значит и что делать.** Все задачи хоста больше 20% времени ждут память (PSI full, без самоторможения раннеров CI на их собственном потолке): это трэш, как 22.09 (75%) и 26.09 (97%). Кто ждёт — панель «Давление на память по контейнерам»; прод отдельно тревожит «Сервер: прод ждёт память». Кто съел — панель «Память инстансов» на дашборде железа; частый виновник — cs2-render с открытой игрой.
 
 <details><summary>Условие</summary>
 
 ```promql
-rate(node_pressure_memory_stalled_seconds_total{job="node-host"}[5m]) > 0.2
+(rate(node_pressure_memory_stalled_seconds_total{job="node-host"}[5m]) - on() group_left() (max(rate(incus_cgroup_memory_stall_seconds_total{kind="full",name=~"ci-(runner|light).*"}[5m])) or vector(0))) > 0.2 or (rate(node_pressure_memory_stalled_seconds_total{job="node-host"}[5m]) > 0.2 and on() (node_memory_MemAvailable_bytes{job="node-host"} / node_memory_MemTotal_bytes{job="node-host"}) < 0.1)
 ```
 
 Держится: 10m · группа `infra-hardware` · uid `hw-memory-pressure`
