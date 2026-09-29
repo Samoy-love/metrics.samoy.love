@@ -1,6 +1,6 @@
 {
   "uid": "samoylove-overview",
-  "title": "samoy.love — сводка",
+  "title": "Сайты samoy.love — сводка",
   "description": "Всё хозяйство одним экраном: всё ли в порядке у проектов, сайтов, сервера и самого мониторинга. Верхние две строки отвечают на это за десять секунд; подробности — в дашборде проекта, ссылки вверху.",
   "tags": [
     "samoy.love",
@@ -9,7 +9,7 @@
   "timezone": "browser",
   "editable": true,
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "1m",
   "time": {
     "from": "now-24h",
@@ -23,105 +23,54 @@
   },
   "links": [
     {
+      "title": "Обзор",
       "type": "link",
-      "title": "Пристрелка",
-      "url": "/d/samoylove-cs2",
-      "keepTime": true,
-      "targetBlank": false,
-      "includeVars": false,
+      "url": "/d/samoylove-ops",
       "icon": "dashboard",
-      "tooltip": "cs.samoy.love: разбор матчей CS2"
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tooltip": ""
     },
     {
-      "type": "link",
-      "title": "Лаунчер",
-      "url": "/d/samoylove-chillhub",
-      "keepTime": true,
-      "targetBlank": false,
-      "includeVars": false,
-      "icon": "dashboard",
-      "tooltip": "ChillHub: сайт, API, админка, телеметрия"
-    },
-    {
-      "type": "link",
-      "title": "Змейки",
-      "url": "/d/samoylove-snakes",
-      "keepTime": true,
-      "targetBlank": false,
-      "includeVars": false,
-      "icon": "dashboard",
-      "tooltip": "snakes.samoy.love"
-    },
-    {
-      "type": "link",
-      "title": "Double or Die",
-      "url": "/d/samoylove-die",
-      "keepTime": true,
-      "targetBlank": false,
-      "includeVars": false,
-      "icon": "dashboard",
-      "tooltip": "die.samoy.love"
-    },
-    {
-      "type": "link",
-      "title": "Метро",
-      "url": "/d/samoylove-metro",
-      "keepTime": true,
-      "targetBlank": false,
-      "includeVars": false,
-      "icon": "dashboard",
-      "tooltip": "metro.samoy.love"
-    },
-    {
-      "type": "link",
-      "title": "Визитка",
-      "url": "/d/samoylove-site",
-      "keepTime": true,
-      "targetBlank": false,
-      "includeVars": false,
-      "icon": "dashboard",
-      "tooltip": "samoy.love"
-    },
-    {
-      "type": "link",
-      "title": "Статус",
-      "url": "/d/samoylove-status",
-      "keepTime": true,
-      "targetBlank": false,
-      "includeVars": false,
-      "icon": "dashboard",
-      "tooltip": "Статус-страница, агент проверок, бот"
-    },
-    {
-      "type": "link",
-      "title": "Железо",
-      "url": "/d/samoylove-hardware",
-      "keepTime": true,
-      "targetBlank": false,
-      "includeVars": false,
-      "icon": "dashboard",
-      "tooltip": "Хост: температуры, ZFS, SMART, контейнеры Incus"
-    },
-    {
-      "type": "dashboards",
-      "title": "Все дашборды",
-      "tags": [
-        "samoy.love"
-      ],
-      "asDropdown": true,
-      "includeVars": false,
-      "keepTime": true,
-      "targetBlank": false
-    },
-    {
-      "type": "link",
-      "keepTime": true,
-      "targetBlank": false,
-      "includeVars": false,
-      "icon": "dashboard",
-      "tooltip": "cs.samoy.love: разбор матчей CS2",
       "title": "CI",
-      "url": "/d/samoylove-ci"
+      "type": "link",
+      "url": "/d/samoylove-ci",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tooltip": ""
+    },
+    {
+      "title": "Сервер",
+      "type": "link",
+      "url": "/d/samoylove-hardware",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tooltip": ""
+    },
+    {
+      "title": "Пристрелка",
+      "type": "link",
+      "url": "/d/samoylove-cs2",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tooltip": ""
+    },
+    {
+      "title": "Тревоги",
+      "type": "link",
+      "url": "/alerting/list?view=list&search=state:firing",
+      "icon": "bolt",
+      "targetBlank": false,
+      "keepTime": false,
+      "includeVars": false,
+      "tooltip": "Что горит сейчас"
     }
   ],
   "panels": [
@@ -1378,7 +1327,7 @@
     {
       "type": "state-timeline",
       "title": "Доступность сайтов (проба)",
-      "description": "probe_success по каждому из семи доменов — тот же сигнал, что судит правило SiteDown. Провал полосы означает, что сайт не открылся снаружи: не важно, DNS, TLS или сам сервер.",
+      "description": "probe_success по каждому из семи доменов — тот же сигнал, что судит правило SiteDown. Провал полосы означает, что сайт не открылся снаружи: не важно, DNS, TLS или сам сервер.\n\nТревоги по этой панели: «Сайты: сайт не открывается» (авария: держится 5 мин); «Сайты: проба и агент статуса расходятся» (предупреждение: держится 30 мин).",
       "targets": [
         {
           "refId": "A",
@@ -1449,7 +1398,7 @@
     {
       "type": "timeseries",
       "title": "Время внешней пробы",
-      "description": "DNS + TLS + ответ, целиком. Не путать с «Время ответа, p95» на дашбордах проектов — там время самого сервера из журнала nginx, здесь — то, что реально ждёт браузер снаружи, включая сеть. Формула правила ProbeLatencyHigh: probe_duration_seconds.",
+      "description": "DNS + TLS + ответ, целиком. Не путать с «Время ответа, p95» на дашбордах проектов — там время самого сервера из журнала nginx, здесь — то, что реально ждёт браузер снаружи, включая сеть. Формула правила ProbeLatencyHigh: probe_duration_seconds.\n\nТревоги по этой панели: «Сайты: сайт отвечает медленно» (предупреждение: держится 15 мин).",
       "targets": [
         {
           "refId": "A",
@@ -1517,7 +1466,7 @@
     {
       "type": "timeseries",
       "title": "Сертификаты: дней до истечения (проба)",
-      "description": "Считает сама проба, а не status-агент: (probe_ssl_earliest_cert_expiry - time()) / 86400 — ровно формула правила CertificateExpiringSoon (порог 14 дней). Пила с продлением раз в два месяца — норма; ниже 30 дней продление уже опоздало (certbot продлевает за 30), монотонное падение к нулю — сломанное автопродление.",
+      "description": "Считает сама проба, а не status-агент: (probe_ssl_earliest_cert_expiry - time()) / 86400 — ровно формула правила CertificateExpiringSoon (порог 14 дней). Пила с продлением раз в два месяца — норма; ниже 30 дней продление уже опоздало (certbot продлевает за 30), монотонное падение к нулю — сломанное автопродление.\n\nТревоги по этой панели: «Сайты: сертификат истекает» (предупреждение: меньше 14, держится 1 ч).",
       "targets": [
         {
           "refId": "A",
@@ -1657,7 +1606,7 @@
     {
       "type": "timeseries",
       "title": "Доля 5xx по сайтам",
-      "description": "Только 5xx — это всегда наша вина, 4xx намеренно не считаются (сканеры, битые ссылки). Числитель и знаменатель — как у правила SiteErrorRateHigh: оно горит выше 5% дольше 10 минут при заметном трафике (больше 20 запросов за 15 минут). Сайт без единой 5xx рисуется нулём, а не пропадает с графика.",
+      "description": "Только 5xx — это всегда наша вина, 4xx намеренно не считаются (сканеры, битые ссылки). Числитель и знаменатель — как у правила SiteErrorRateHigh: оно горит выше 5% дольше 10 минут при заметном трафике (больше 20 запросов за 15 минут). Сайт без единой 5xx рисуется нулём, а не пропадает с графика.\n\nТревоги по этой панели: «Сайты: больше 5% ответов — пятисотки» (авария: больше 2000%, держится 10 мин).",
       "targets": [
         {
           "refId": "A",
@@ -1900,7 +1849,7 @@
     {
       "type": "timeseries",
       "title": "Посещаемость: сейчас против недели назад",
-      "description": "100% — трафик к «/» такой же, как в эти же 6 часов неделю назад; правило TrafficCollapse срабатывает ниже 20%. Сравнение с прошлой неделей, а не с абсолютным числом: у личных проектов нет «нормального» количества визитов, только недельный ритм. С 19.09.2026 blackbox ходит к сайтам через nginx хоста, и его пробы (2 в минуту на каждый сайт) попадают в журнал вместе с проверками агента статуса (ещё около 1 в минуту): в числах по «/» роботы стоят вровень с людьми, а то и выше. До 26.09.2026 линии стоят около 300% только из-за этого. Шкала обрезана на 300 %: у сайта, которого неделю назад почти не было, отношение уходит в тысячи процентов и сплющивало остальные линии; тревога TrafficCollapse смотрит на падение, а не на рост.",
+      "description": "100% — трафик к «/» такой же, как в эти же 6 часов неделю назад; правило TrafficCollapse срабатывает ниже 20%. Сравнение с прошлой неделей, а не с абсолютным числом: у личных проектов нет «нормального» количества визитов, только недельный ритм. С 19.09.2026 blackbox ходит к сайтам через nginx хоста, и его пробы (2 в минуту на каждый сайт) попадают в журнал вместе с проверками агента статуса (ещё около 1 в минуту): в числах по «/» роботы стоят вровень с людьми, а то и выше. До 26.09.2026 линии стоят около 300% только из-за этого. Шкала обрезана на 300 %: у сайта, которого неделю назад почти не было, отношение уходит в тысячи процентов и сплющивало остальные линии; тревога TrafficCollapse смотрит на падение, а не на рост.\n\nТревоги по этой панели: «Сайты: посещаемость упала впятеро» (предупреждение: держится 2 ч).",
       "targets": [
         {
           "refId": "A",
@@ -1969,7 +1918,7 @@
     {
       "type": "timeseries",
       "title": "Время ответа сайтов, p95",
-      "description": "По всем доменам разом, окно 15 минут — формула правила SiteLatencyHigh (порог 1 с), с теми же исключениями: /downloads/, /content/, /clips/video/ и /admin/vnc/ — это передача файлов и долгие соединения, их request_time растёт с размером и каналом клиента, а не с нагрузкой. Время самого сервера из журнала nginx, без сети и TLS (это «Время внешней пробы» выше).",
+      "description": "По всем доменам разом, окно 15 минут — формула правила SiteLatencyHigh (порог 1 с), с теми же исключениями: /downloads/, /content/, /clips/video/ и /admin/vnc/ — это передача файлов и долгие соединения, их request_time растёт с размером и каналом клиента, а не с нагрузкой. Время самого сервера из журнала nginx, без сети и TLS (это «Время внешней пробы» выше).\n\nТревоги по этой панели: «Сайты: nginx отвечает медленно» (предупреждение: дольше 1 с, держится 15 мин).",
       "targets": [
         {
           "refId": "A",
@@ -2037,7 +1986,7 @@
     {
       "type": "timeseries",
       "title": "Ошибки разбора журнала nginx",
-      "description": "Строки журнала, не разобранные экспортёром: формат в deploy-kit и строка разбора экспортёра разошлись молча, метрики посещаемости замерли на месте, хотя сайт жив. Формула правила AccessLogParseFailing. Счётчик у экспортёра один на весь журнал, без разбивки по сайтам. Вторая линия — журнал событий сайтов (/e/…), у него свой разборщик.",
+      "description": "Строки журнала, не разобранные экспортёром: формат в deploy-kit и строка разбора экспортёра разошлись молча, метрики посещаемости замерли на месте, хотя сайт жив. Формула правила AccessLogParseFailing. Счётчик у экспортёра один на весь журнал, без разбивки по сайтам. Вторая линия — журнал событий сайтов (/e/…), у него свой разборщик.\n\nТревоги по этой панели: «Сайты: журнал nginx не разбирается» (предупреждение: больше 0, держится 30 мин).",
       "targets": [
         {
           "refId": "A",
@@ -2544,7 +2493,7 @@
     {
       "type": "timeseries",
       "title": "Свободно на дисках",
-      "description": "Два места, которые могут кончиться у всех сразу: пул ZFS, на котором живут все контейнеры, и системный диск хоста. Датасеты с собственной квотой (демки и клипы Пристрелки) — в её дашборде.",
+      "description": "Два места, которые могут кончиться у всех сразу: пул ZFS, на котором живут все контейнеры, и системный диск хоста. Датасеты с собственной квотой (демки и клипы Пристрелки) — в её дашборде.\n\nТревоги по этой панели: «Сервер: в контейнере web кончается диск» (авария: меньше 10%, держится 15 мин).",
       "targets": [
         {
           "refId": "A",
@@ -2696,7 +2645,7 @@
     {
       "type": "state-timeline",
       "title": "Службы (systemd)",
-      "description": "Провал полосы — служба падала, даже если сейчас поднялась. Постоянные службы контейнера web (ряд A) меряются активностью — порог ServiceDown. Ряд B — юниты в failed и в web, и на хосте, включая задания по таймеру: между запусками они штатно неактивны, но failed не бывает нормальным никогда (UnitFailed). Строка ряда B появляется только на время сбоя: пустота — это хорошо.",
+      "description": "Провал полосы — служба падала, даже если сейчас поднялась. Постоянные службы контейнера web (ряд A) меряются активностью — порог ServiceDown. Ряд B — юниты в failed и в web, и на хосте, включая задания по таймеру: между запусками они штатно неактивны, но failed не бывает нормальным никогда (UnitFailed). Строка ряда B появляется только на время сбоя: пустота — это хорошо.\n\nТревоги по этой панели: «Сайты: служба в контейнере web не работает» (авария: держится 5 мин); «Сайты: юнит в контейнере web упал» (авария: держится 5 мин).",
       "targets": [
         {
           "refId": "A",
@@ -2862,7 +2811,7 @@
     {
       "type": "stat",
       "title": "Точек в секунду",
-      "description": "Скорость записи в TSDB Prometheus. Резкое падение — часть целей перестала собираться; ноль — сбор встал целиком, и все графики выше замерли.",
+      "description": "Скорость записи в TSDB Prometheus. Резкое падение — часть целей перестала собираться; ноль — сбор встал целиком, и все графики выше замерли.\n\nТревоги по этой панели: «Мониторинг: Prometheus не пишет точки» (авария: держится 5 мин).",
       "targets": [
         {
           "refId": "A",
@@ -2976,7 +2925,7 @@
     {
       "type": "stat",
       "title": "TSDB от лимита размера",
-      "description": "Размер блоков TSDB от лимита retention.size. У лимита в 100% Prometheus начинает удалять старые блоки раньше 90 дней — история укорачивается молча.",
+      "description": "Размер блоков TSDB от лимита retention.size. У лимита в 100% Prometheus начинает удалять старые блоки раньше 90 дней — история укорачивается молча.\n\nТревоги по этой панели: «Мониторинг: хранилище Prometheus почти у лимита» (предупреждение: больше 85%, держится 1 ч).",
       "targets": [
         {
           "refId": "A",
@@ -3035,7 +2984,7 @@
     {
       "type": "stat",
       "title": "Конфиг Prometheus",
-      "description": "Удалось ли Prometheus перечитать prometheus.yml в последний раз. «ошибка» — он работает на старом конфиге, и новые цели или правки из последней выкатки не применились.",
+      "description": "Удалось ли Prometheus перечитать prometheus.yml в последний раз. «ошибка» — он работает на старом конфиге, и новые цели или правки из последней выкатки не применились.\n\nТревоги по этой панели: «Мониторинг: Prometheus не принял конфиг» (предупреждение: держится 10 мин); «Мониторинг: файл метрик на хосте устарел» (предупреждение: дольше 30 мин, держится 5 мин).",
       "targets": [
         {
           "refId": "A",
@@ -3107,7 +3056,7 @@
     {
       "type": "stat",
       "title": "Отставание тревог",
-      "description": "Насколько планировщик правил Grafana отстаёт от расписания. Норма — доли секунды; десятки секунд — правила вычисляются позже, чем задумано, и тревога опаздывает на столько же.",
+      "description": "Насколько планировщик правил Grafana отстаёт от расписания. Норма — доли секунды; десятки секунд — правила вычисляются позже, чем задумано, и тревога опаздывает на столько же.\n\nТревоги по этой панели: «Мониторинг: Grafana не успевает вычислять тревоги» (предупреждение: дольше 30 с, держится 10 мин).",
       "targets": [
         {
           "refId": "A",
@@ -3167,7 +3116,7 @@
     {
       "type": "stat",
       "title": "Сбоев правил за час",
-      "description": "Сколько раз за час вычисление правила Grafana закончилось ошибкой (запрос к Prometheus упал или выражение не разобралось). Больше нуля — какое-то правило сейчас слепое.",
+      "description": "Сколько раз за час вычисление правила Grafana закончилось ошибкой (запрос к Prometheus упал или выражение не разобралось). Больше нуля — какое-то правило сейчас слепое.\n\nТревоги по этой панели: «Мониторинг: правила тревог не вычисляются» (предупреждение: больше 0, держится 15 мин).",
       "targets": [
         {
           "refId": "A",
@@ -3223,7 +3172,7 @@
     {
       "type": "state-timeline",
       "title": "Сбор метрик",
-      "description": "up по каждой цели сбора Prometheus — все job из prometheus.yml. Дыра здесь означает, что графики этой цели в тот момент врут. blackbox-http и nginxlog будят MonitoringExporterDown, node-host и incus — свои правила.",
+      "description": "up по каждой цели сбора Prometheus — все job из prometheus.yml. Дыра здесь означает, что графики этой цели в тот момент врут. blackbox-http и nginxlog будят MonitoringExporterDown, node-host и incus — свои правила.\n\nТревоги по этой панели: «Сервер: метрики железа не собираются» (предупреждение: держится 15 мин); «Сервер: метрики контейнеров не собираются» (предупреждение: держится 15 мин); «Мониторинг: экспортёр проб или журналов не отвечает» (предупреждение: держится 5 мин); «Мониторинг: цель сбора не отвечает» (предупреждение: держится 5 мин); «Мониторинг: цель сбора пропала из конфига» (предупреждение: держится 15 мин).",
       "targets": [
         {
           "refId": "A",
@@ -3430,7 +3379,7 @@
     {
       "type": "timeseries",
       "title": "Время опроса целей",
-      "description": "Самый долгий опрос по каждому job. Таймаут опроса — 10 с: подход к нему означает, что цель вот-вот начнёт выпадать из сбора (up = 0) без всякой аварии у самой цели.",
+      "description": "Самый долгий опрос по каждому job. Таймаут опроса — 10 с: подход к нему означает, что цель вот-вот начнёт выпадать из сбора (up = 0) без всякой аварии у самой цели.\n\nТревоги по этой панели: «Мониторинг: сбор цели почти упирается в таймаут» (предупреждение: дольше 8 с, держится 15 мин).",
       "targets": [
         {
           "refId": "A",
@@ -3498,7 +3447,7 @@
     {
       "type": "timeseries",
       "title": "Сбои хранилища Prometheus",
-      "description": "Ошибки самой TSDB за час: неудачные компакции, перезагрузки блоков, записи и усечения WAL, повреждения WAL. Норма — ноль по всем линиям; любая ненулевая — хранилище портится, и история может пропасть.",
+      "description": "Ошибки самой TSDB за час: неудачные компакции, перезагрузки блоков, записи и усечения WAL, повреждения WAL. Норма — ноль по всем линиям; любая ненулевая — хранилище портится, и история может пропасть.\n\nТревоги по этой панели: «Мониторинг: хранилище Prometheus сбоит» (предупреждение: больше 0).",
       "targets": [
         {
           "refId": "A",
@@ -3574,440 +3523,6 @@
         "type": "prometheus",
         "uid": "samoylove-prometheus"
       }
-    },
-    {
-      "type": "row",
-      "title": "CI — свои раннеры",
-      "id": 55,
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 101
-      },
-      "panels": [],
-      "description": "Очередь заданий GitHub Actions на собственных раннерах. Подробности и тревоги infra-ci — на дашборде «CI — раннеры и очередь»."
-    },
-    {
-      "type": "stat",
-      "title": "CI: ждут Linux",
-      "description": "Задания, ждущие собственный Linux-раннер (их четыре). Десяток надолго — раннеров не хватает или они не берут работу.",
-      "id": 56,
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 102
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(ci_jobs_queued{pool=~\"home-linux|set-heavy\"})",
-          "instant": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "noValue": "нет данных",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 4
-              },
-              {
-                "color": "orange",
-                "value": 8
-              },
-              {
-                "color": "red",
-                "value": 15
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "links": [
-        {
-          "title": "Дашборд: CI",
-          "url": "/d/samoylove-ci"
-        }
-      ]
-    },
-    {
-      "type": "stat",
-      "title": "CI: самое долгое ожидание, Linux",
-      "description": "Возраст самого старого ждущего задания на Linux. Больше 10 минут — тревога CIQueueStuckLinux.",
-      "id": 57,
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 4,
-        "y": 102
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "max(ci_job_queue_oldest_seconds{pool=~\"home-linux|set-heavy\"})",
-          "instant": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "decimals": 0,
-          "noValue": "нет данных",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 180
-              },
-              {
-                "color": "orange",
-                "value": 600
-              },
-              {
-                "color": "red",
-                "value": 1200
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "links": [
-        {
-          "title": "Дашборд: CI",
-          "url": "/d/samoylove-ci"
-        }
-      ]
-    },
-    {
-      "type": "stat",
-      "title": "CI: ждут лёгкие",
-      "description": "Задания, ждущие лёгкий раннер (метка light: линтеры, тесты на Node, снимки страниц, покрытие). Три раннера ci-light, задание обычно стартует за секунды.",
-      "id": 60,
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 8,
-        "y": 102
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(ci_jobs_queued{pool=~\"home-light|set-light\"})",
-          "instant": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "noValue": "нет данных",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 4
-              },
-              {
-                "color": "orange",
-                "value": 8
-              },
-              {
-                "color": "red",
-                "value": 15
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "links": [
-        {
-          "title": "Дашборд: CI",
-          "url": "/d/samoylove-ci"
-        }
-      ]
-    },
-    {
-      "type": "stat",
-      "title": "CI: самое долгое ожидание, лёгкие",
-      "description": "Возраст самого старого задания, ждущего лёгкий раннер. Больше 5 минут — тревога CIQueueStuckLight.",
-      "id": 61,
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 12,
-        "y": 102
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "max(ci_job_queue_oldest_seconds{pool=~\"home-light|set-light\"})",
-          "instant": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "decimals": 0,
-          "noValue": "нет данных",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 180
-              },
-              {
-                "color": "orange",
-                "value": 600
-              },
-              {
-                "color": "red",
-                "value": 1200
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "links": [
-        {
-          "title": "Дашборд: CI",
-          "url": "/d/samoylove-ci"
-        }
-      ]
-    },
-    {
-      "type": "stat",
-      "title": "CI: ждут Windows",
-      "description": "Задания, ждущие win-builder. Машина спит и просыпается по требованию: одно задание на минуту-две — её загрузка.",
-      "id": 58,
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 16,
-        "y": 102
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(ci_jobs_queued{pool=\"home-windows\"})",
-          "instant": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "noValue": "нет данных",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 2
-              },
-              {
-                "color": "orange",
-                "value": 4
-              },
-              {
-                "color": "red",
-                "value": 8
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "links": [
-        {
-          "title": "Дашборд: CI",
-          "url": "/d/samoylove-ci"
-        }
-      ]
-    },
-    {
-      "type": "stat",
-      "title": "CI: самое долгое ожидание, Windows",
-      "description": "Возраст самого старого ждущего задания на win-builder. Больше 15 минут — тревога CIQueueStuckWindows.",
-      "id": 59,
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 20,
-        "y": 102
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "max(ci_job_queue_oldest_seconds{pool=\"home-windows\"})",
-          "instant": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "decimals": 0,
-          "noValue": "нет данных",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 300
-              },
-              {
-                "color": "orange",
-                "value": 900
-              },
-              {
-                "color": "red",
-                "value": 1800
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "links": [
-        {
-          "title": "Дашборд: CI",
-          "url": "/d/samoylove-ci"
-        }
-      ]
     }
   ]
 }

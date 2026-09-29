@@ -1,16 +1,15 @@
 {
   "uid": "samoylove-ci",
-  "title": "CI — раннеры и очередь",
-  "description": "Очередь заданий GitHub Actions по пулам раннеров: свои одноразовые Linux-раннеры (большие и лёгкие, их число меняет ci-autoscaler) и Windows-машина win-builder по требованию. Данные — сборщик ci-queue-collect и контроллер ci-autoscaler (репозиторий home-server) через textfile node-host и метрики Incus.",
+  "title": "CI — раннеры, очередь, задания",
+  "description": "Свои раннеры GitHub Actions: ждут ли задания, почему не поднимаются раннеры, сколько идут сборки. Сверху — что сломалось, ниже — почему.",
   "tags": [
     "samoy.love",
-    "CI",
-    "сервер"
+    "ci"
   ],
   "timezone": "browser",
-  "editable": true,
+  "editable": false,
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "1m",
   "time": {
     "from": "now-24h",
@@ -24,31 +23,69 @@
   },
   "links": [
     {
-      "type": "dashboards",
-      "title": "Проекты",
-      "tags": [
-        "samoy.love"
-      ],
-      "asDropdown": true,
-      "includeVars": false,
+      "title": "Обзор",
+      "type": "link",
+      "url": "/d/samoylove-ops",
+      "icon": "dashboard",
+      "targetBlank": false,
       "keepTime": true,
-      "targetBlank": false
+      "includeVars": false,
+      "tooltip": ""
+    },
+    {
+      "title": "Сервер",
+      "type": "link",
+      "url": "/d/samoylove-hardware",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tooltip": ""
+    },
+    {
+      "title": "Пристрелка",
+      "type": "link",
+      "url": "/d/samoylove-cs2",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tooltip": ""
+    },
+    {
+      "title": "Сайты",
+      "type": "link",
+      "url": "/d/samoylove-overview",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tooltip": ""
+    },
+    {
+      "title": "Тревоги",
+      "type": "link",
+      "url": "/alerting/list?view=list&search=state:firing",
+      "icon": "bolt",
+      "targetBlank": false,
+      "keepTime": false,
+      "includeVars": false,
+      "tooltip": "Что горит сейчас"
     }
   ],
   "panels": [
     {
       "type": "row",
-      "title": "Очередь сейчас",
+      "title": "Сейчас: ждут ли задания раннера",
       "id": 2,
       "collapsed": false,
+      "panels": [],
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 0
-      },
-      "panels": [],
-      "description": "Ждут ли задания раннер прямо сейчас. Данные — сборщик ci-queue-collect на хосте (опрос GitHub раз в 30 с) через textfile node-host."
+      }
     },
     {
       "type": "stat",
@@ -77,7 +114,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -91,7 +129,7 @@
                 "value": null
               },
               {
-                "color": "yellow",
+                "color": "#EAB839",
                 "value": 4
               },
               {
@@ -106,6 +144,10 @@
           }
         },
         "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
       }
     },
     {
@@ -135,7 +177,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -149,7 +192,7 @@
                 "value": null
               },
               {
-                "color": "yellow",
+                "color": "#EAB839",
                 "value": 180
               },
               {
@@ -164,6 +207,136 @@
           }
         },
         "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "В очереди — лёгкие",
+      "description": "Задания, ждущие лёгкий раннер (метка light, их три): линтеры, тесты на Node, снимки страниц, покрытие. Работы в них секунды, поэтому очередь здесь рассасывается быстро.",
+      "id": 30,
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(ci_jobs_queued{pool=~\"home-light|set-light\"})"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 4
+              },
+              {
+                "color": "orange",
+                "value": 8
+              },
+              {
+                "color": "red",
+                "value": 15
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Ждёт дольше всех — лёгкие",
+      "description": "Возраст самого старого задания в очереди лёгких. Больше пяти минут — их не хватает или они не берут работу.",
+      "id": 31,
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(ci_job_queue_oldest_seconds{pool=~\"home-light|set-light\"})"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 120
+              },
+              {
+                "color": "orange",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 600
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
       }
     },
     {
@@ -174,7 +347,7 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 8,
+        "x": 16,
         "y": 1
       },
       "targets": [
@@ -193,7 +366,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -207,7 +381,7 @@
                 "value": null
               },
               {
-                "color": "yellow",
+                "color": "#EAB839",
                 "value": 2
               },
               {
@@ -222,6 +396,10 @@
           }
         },
         "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
       }
     },
     {
@@ -232,7 +410,7 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 12,
+        "x": 20,
         "y": 1
       },
       "targets": [
@@ -251,7 +429,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -265,7 +444,7 @@
                 "value": null
               },
               {
-                "color": "yellow",
+                "color": "#EAB839",
                 "value": 300
               },
               {
@@ -280,6 +459,10 @@
           }
         },
         "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
       }
     },
     {
@@ -290,8 +473,8 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 16,
-        "y": 1
+        "x": 0,
+        "y": 5
       },
       "targets": [
         {
@@ -309,7 +492,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -330,6 +514,112 @@
           }
         },
         "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Идёт заданий — большие",
+      "description": "Сколько заданий сейчас исполняется на собственных Linux-раннерах. Потолок — число раннеров (4).",
+      "id": 9,
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(ci_jobs_running{pool=~\"home-linux|set-heavy\"})"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Идёт заданий — лёгкие",
+      "description": "Сколько заданий сейчас исполняется на лёгких раннерах. Потолок — три.",
+      "id": 32,
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(ci_jobs_running{pool=~\"home-light|set-light\"})"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
       }
     },
     {
@@ -340,8 +630,8 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 20,
-        "y": 1
+        "x": 12,
+        "y": 5
       },
       "targets": [
         {
@@ -359,7 +649,8 @@
         },
         "colorMode": "background",
         "graphMode": "none",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -391,52 +682,10 @@
           ]
         },
         "overrides": []
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Идёт заданий — большие",
-      "description": "Сколько заданий сейчас исполняется на собственных Linux-раннерах. Потолок — число раннеров (4).",
-      "id": 9,
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 5
       },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(ci_jobs_running{pool=~\"home-linux|set-heavy\"})"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
       }
     },
     {
@@ -447,7 +696,7 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 4,
+        "x": 16,
         "y": 5
       },
       "targets": [
@@ -466,7 +715,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -483,6 +733,10 @@
           }
         },
         "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
       }
     },
     {
@@ -493,7 +747,7 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 8,
+        "x": 20,
         "y": 5
       },
       "targets": [
@@ -512,7 +766,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -529,6 +784,10 @@
           }
         },
         "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
       }
     },
     {
@@ -538,9 +797,9 @@
       "id": 12,
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 12,
-        "y": 5
+        "w": 6,
+        "x": 0,
+        "y": 9
       },
       "targets": [
         {
@@ -558,7 +817,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -572,7 +832,7 @@
                 "value": null
               },
               {
-                "color": "yellow",
+                "color": "#EAB839",
                 "value": 120
               },
               {
@@ -587,18 +847,22 @@
           }
         },
         "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
       }
     },
     {
       "type": "stat",
       "title": "Сборщик очереди",
-      "description": "Сколько секунд назад ci-queue-collect последний раз записал данные. Опрос раз в 30 с; больше пяти минут — числа на этой панели устарели (таймер на хосте встал).",
+      "description": "Сколько секунд назад ci-queue-collect последний раз записал данные. Опрос раз в 30 с; больше пяти минут — числа на этой панели устарели (таймер на хосте встал).\n\nТревоги по этой панели: «CI: сборщик очереди GitHub молчит» (предупреждение: держится 10 мин).",
       "id": 13,
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 16,
-        "y": 5
+        "w": 6,
+        "x": 6,
+        "y": 9
       },
       "targets": [
         {
@@ -616,7 +880,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -630,7 +895,7 @@
                 "value": null
               },
               {
-                "color": "yellow",
+                "color": "#EAB839",
                 "value": 120
               },
               {
@@ -641,6 +906,10 @@
           }
         },
         "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
       }
     },
     {
@@ -650,9 +919,9 @@
       "id": 14,
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 20,
-        "y": 5
+        "w": 6,
+        "x": 12,
+        "y": 9
       },
       "targets": [
         {
@@ -670,7 +939,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -688,7 +958,7 @@
                 "value": 500
               },
               {
-                "color": "yellow",
+                "color": "#EAB839",
                 "value": 1500
               },
               {
@@ -699,1427 +969,16 @@
           }
         },
         "overrides": []
-      }
-    },
-    {
-      "type": "row",
-      "title": "Динамика очереди",
-      "id": 15,
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 42
       },
-      "panels": [],
-      "description": "Копится ли очередь и хватает ли раннеров."
-    },
-    {
-      "type": "timeseries",
-      "title": "Задания в очереди",
-      "description": "Сколько заданий ждут раннер, по пулам. «Лестница», которая растёт и не опускается, — раннеры не успевают: слишком много параллельных PR и выкаток или раннер перестал брать задания.",
-      "id": 16,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 43
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by (pool) (ci_jobs_queued)",
-          "legendFormat": "{{pool}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 25,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "normal",
-              "group": "A"
-            }
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "last",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Самое старое задание в очереди",
-      "description": "Возраст самого старого ждущего задания по пулам. Пунктир — пороги тревоги: 10 минут для Linux, 15 минут для Windows.",
-      "id": 17,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 43
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "max by (pool) (ci_job_queue_oldest_seconds{pool=~\"home-.*|set-.*\"})",
-          "legendFormat": "{{pool}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true,
-            "thresholdsStyle": {
-              "mode": "dashed"
-            }
-          },
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "transparent",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 600
-              },
-              {
-                "color": "red",
-                "value": 900
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "last",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Загрузка раннеров",
-      "description": "Доля собственных Linux-раннеров, занятых заданиями: идущие задания больших и лёгких, делённые на число раннеров онлайн. Долго у 100% при непустой очереди — раннеров не хватает. Сверху обрезано на 100%: GitHub ещё держит задание «идущим», когда одноразовый раннер уже снят, и после перезагрузки хоста отношение уходило за 250%.",
-      "id": 18,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 51
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "clamp_max(sum(ci_jobs_running{pool=~\"home-linux|home-light|set-heavy|set-light\"}) / clamp_min(sum(ci_runners{os!=\"windows\",status=\"online\"}), 1), 1)",
-          "legendFormat": "занято"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Идут и ждут — большие",
-      "description": "Идущие и ждущие задания Linux на фоне числа раннеров. Раннеров теперь столько, сколько поднял ci-autoscaler: если очередь стоит, а поднятых не прибавляется, — смотри «Почему не поднимает новых» выше.",
-      "id": 19,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 51
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(ci_jobs_running{pool=~\"home-linux|set-heavy\"})",
-          "legendFormat": "идут"
-        },
-        {
-          "refId": "B",
-          "expr": "sum(ci_jobs_queued{pool=~\"home-linux|set-heavy\"})",
-          "legendFormat": "ждут"
-        },
-        {
-          "refId": "C",
-          "expr": "sum(ci_runners{os!=\"windows\",status=\"online\"})",
-          "legendFormat": "раннеров онлайн"
-        },
-        {
-          "refId": "D",
-          "expr": "sum(ci_autoscaler_slots{state!=\"off\"}) or vector(0)",
-          "legendFormat": "поднято контроллером"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "last",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "row",
-      "title": "Сколько задания ждали",
-      "id": 20,
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 59
-      },
-      "panels": [],
-      "description": "Время от создания задания до старта на раннере — то, что человек видит как «CI тупит». Гистограмма ci_job_queue_wait_seconds."
-    },
-    {
-      "type": "timeseries",
-      "title": "Ожидание до старта, p50 и p95",
-      "description": "Медиана и 95-й процентиль ожидания раннера за последний час, по пулам. Для Linux норма — секунды, для Windows — до двух минут (загрузка машины).",
-      "id": 21,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 60
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "histogram_quantile(0.5, sum by (le, pool) (rate(ci_job_queue_wait_seconds_bucket{pool=~\"home-.*|set-.*\"}[1h])))",
-          "legendFormat": "{{pool}} p50"
-        },
-        {
-          "refId": "B",
-          "expr": "histogram_quantile(0.95, sum by (le, pool) (rate(ci_job_queue_wait_seconds_bucket{pool=~\"home-.*|set-.*\"}[1h])))",
-          "legendFormat": "{{pool}} p95"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Стартовало заданий в час",
-      "description": "Сколько заданий начались за час, по пулам — объём работы на раннерах.",
-      "id": 22,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 60
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by (pool) (increase(ci_job_queue_wait_seconds_count[1h]))",
-          "legendFormat": "{{pool}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Доля заданий, ждавших дольше 5 минут",
-      "description": "Какая часть начавшихся за час заданий ждала раннер больше 5 минут. Больше 10% — очередь заметна людям.",
-      "id": 23,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 68
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "1 - sum by (pool) (rate(ci_job_queue_wait_seconds_bucket{pool=~\"home-.*|set-.*\",le=~\"300(.0)?\"}[1h])) / sum by (pool) (rate(ci_job_queue_wait_seconds_count{pool=~\"home-.*|set-.*\"}[1h]))",
-          "legendFormat": "{{pool}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true,
-            "thresholdsStyle": {
-              "mode": "dashed"
-            }
-          },
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "transparent",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 0.1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Очередь по репозиториям",
-      "description": "Чьи задания ждут: ждущие задания по репозиторию. Помогает понять, чья пачка PR заняла раннеры.",
-      "id": 24,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 68
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by (repo) (ci_jobs_queued{repo!=\"\"})",
-          "legendFormat": "{{repo}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 25,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "normal",
-              "group": "A"
-            }
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "row",
-      "title": "Ресурсы раннеров",
-      "id": 25,
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 76
-      },
-      "panels": [],
-      "description": "Сколько раннеры берут у хоста. Метрики Incus по инстансам ci-runner*, ci-light*, ci-db (базы для тестов) и win-builder; снятые раннеры доживают на графике до конца окна."
-    },
-    {
-      "type": "timeseries",
-      "title": "CPU раннеров, ядра",
-      "description": "Сколько ядер занимает каждый раннер. С 22.09.2026 раннеры и ci-db делят двенадцать потоков хоста (2–7 и 10–15) и ограничены квотой: большой — четыре ядра, лёгкий — три, ci-db — два. Линия, упёршаяся в свою квоту, значит, что задание ждёт процессор, а не диск или сеть.",
-      "id": 26,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 77
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by (name) (rate(incus_cpu_seconds_total{name=~\"ci-.*|win-builder\",mode!=\"idle\"}[2m]))",
-          "legendFormat": "{{name}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Память раннеров",
-      "description": "Занятая память по раннерам (MemTotal − MemAvailable внутри инстанса). Лимиты на 22.09.2026: большой раннер — 4 ГиБ, лёгкий — 2 ГиБ, ci-db — 5 ГиБ, win-builder — 4 ГиБ. У остановленного инстанса линии нет.",
-      "id": 27,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 77
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "(max by (name) (incus_memory_MemTotal_bytes{name=~\"ci-.*|win-builder\"} - incus_memory_MemAvailable_bytes{name=~\"ci-.*|win-builder\"})) > 0",
-          "legendFormat": "{{name}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Сеть раннеров, приём",
-      "description": "Приём по раннерам: зависимости, образы, архивы действий. Узкое место дома — обход блокировок до github.com; медленный «Set up job» видно здесь.",
-      "id": 28,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 85
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by (name) (rate(incus_network_receive_bytes_total{name=~\"ci-.*|win-builder\",device!=\"lo\"}[2m]))",
-          "legendFormat": "{{name}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "Bps",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Диск раннеров, чтение",
-      "description": "Чтение с физических дисков, отнесённое к раннеру, — то, что не нашлось в ARC. Запись здесь не показывается: ZFS пишет группами транзакций от имени ядра, и Incus отдаёт для контейнеров ноль — прежняя панель записи рисовала нули у всех Linux-раннеров. Честная запись есть только у виртуалки win-builder и суммарно по дискам — в дашборде «Железо».",
-      "id": 29,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 85
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by (name) (rate(incus_disk_read_bytes_total{name=~\"ci-.*|win-builder\"}[2m]))",
-          "legendFormat": "{{name}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "Bps",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "stat",
-      "title": "В очереди — лёгкие",
-      "description": "Задания, ждущие лёгкий раннер (метка light, их три): линтеры, тесты на Node, снимки страниц, покрытие. Работы в них секунды, поэтому очередь здесь рассасывается быстро.",
-      "id": 30,
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 9
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(ci_jobs_queued{pool=~\"home-light|set-light\"})"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 4
-              },
-              {
-                "color": "orange",
-                "value": 8
-              },
-              {
-                "color": "red",
-                "value": 15
-              }
-            ]
-          }
-        },
-        "overrides": []
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Ждёт дольше всех — лёгкие",
-      "description": "Возраст самого старого задания в очереди лёгких. Больше пяти минут — их не хватает или они не берут работу.",
-      "id": 31,
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 4,
-        "y": 9
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "max(ci_job_queue_oldest_seconds{pool=~\"home-light|set-light\"})"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 120
-              },
-              {
-                "color": "orange",
-                "value": 300
-              },
-              {
-                "color": "red",
-                "value": 600
-              }
-            ]
-          }
-        },
-        "overrides": []
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Идёт заданий — лёгкие",
-      "description": "Сколько заданий сейчас исполняется на лёгких раннерах. Потолок — три.",
-      "id": 32,
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 8,
-        "y": 9
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(ci_jobs_running{pool=~\"home-light|set-light\"})"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      }
-    },
-    {
-      "type": "row",
-      "title": "Общие тестовые базы ci-db",
-      "id": 33,
-      "collapsed": false,
-      "panels": [],
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 93
-      },
-      "description": "Контейнер ci-db с 22.09.2026 держит одну пару серверов Postgres и ClickHouse на все шарды тестов cs2 (samoy-love/cs2#617): задания больше не поднимают базы в своём Docker. Если ci-db лёг или упёрся в память, падают все тесты на базах разом."
-    },
-    {
-      "type": "stat",
-      "title": "ci-db работает",
-      "id": 34,
       "datasource": {
         "type": "prometheus",
         "uid": "samoylove-prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 4,
-        "x": 0,
-        "y": 94
-      },
-      "description": "Сколько ci-db работает с последнего запуска. Пусто — Incus о нём не знает: контейнер остановлен или удалён.",
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "max(incus_time_seconds{name=\"ci-db\"} - incus_boot_time_seconds{name=\"ci-db\"})",
-          "instant": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "noValue": "не запущен",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
       }
-    },
-    {
-      "type": "timeseries",
-      "title": "ci-db: память",
-      "id": 35,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 10,
-        "x": 4,
-        "y": 94
-      },
-      "description": "Занятая память и лимит контейнера. Занятое у лимита — следующая пачка тестов получит убийство по памяти внутри баз (правая ось — сколько процессов убито за час).",
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "incus_memory_MemTotal_bytes{name=\"ci-db\"}",
-          "legendFormat": "лимит"
-        },
-        {
-          "refId": "B",
-          "expr": "incus_memory_MemTotal_bytes{name=\"ci-db\"} - incus_memory_MemAvailable_bytes{name=\"ci-db\"}",
-          "legendFormat": "занято"
-        },
-        {
-          "refId": "C",
-          "expr": "increase(incus_memory_OOM_kills_total{name=\"ci-db\"}[1h])",
-          "legendFormat": "убито по памяти за час"
-        }
-      ],
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "min": 0,
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "убито по памяти за час"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "short"
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "ci-db: процессор и чтение с диска",
-      "id": 36,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 10,
-        "x": 14,
-        "y": 94
-      },
-      "description": "Ядра, которые занимают базы (квота — два), и чтение с физических дисков (правая ось). Процессор у квоты во время прогонов — тесты ждут базы.",
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(rate(incus_cpu_seconds_total{name=\"ci-db\"}[2m]))",
-          "legendFormat": "ядра"
-        },
-        {
-          "refId": "B",
-          "expr": "sum(rate(incus_disk_read_bytes_total{name=\"ci-db\"}[2m]))",
-          "legendFormat": "чтение"
-        }
-      ],
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "min": 0,
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "чтение"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "Bps"
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "type": "row",
-      "title": "Сколько идут задания",
-      "id": 37,
-      "collapsed": false,
-      "panels": [],
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 102
-      },
-      "description": "Длительность законченных заданий от старта на раннере до конца, по пулам, workflow и заданиям, и кто из раннеров чем занят. Данные — тот же сборщик ci-queue-collect на хосте: прогон, пропавший из идущих, он дозапрашивает один раз. Прогон, начавшийся и закончившийся между двумя опросами (30 с), сюда не попадает."
-    },
-    {
-      "type": "timeseries",
-      "title": "Длительность заданий, p50 и p95",
-      "id": 38,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 103
-      },
-      "description": "Медиана и 95-й процентиль длительности законченных заданий за час по пулам. Рост p95 при прежнем числе заданий — тесты стали тяжелее или раннерам тесно (см. квоты ниже).",
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "histogram_quantile(0.5, sum by (le, pool) (rate(ci_job_duration_seconds_bucket[1h])))",
-          "legendFormat": "p50 {{pool}}"
-        },
-        {
-          "refId": "B",
-          "expr": "histogram_quantile(0.95, sum by (le, pool) (rate(ci_job_duration_seconds_bucket[1h])))",
-          "legendFormat": "p95 {{pool}}"
-        }
-      ],
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "min": 0,
-          "noValue": "нет данных от сборщика",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          }
-        },
-        "overrides": []
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Законченные задания в час по исходу",
-      "id": 39,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 103
-      },
-      "description": "Сколько заданий закончилось за час: успех, провал, отмена. Всплеск отмен — обычно новый пуш поверх идущего прогона.",
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by (conclusion) (increase(ci_jobs_completed_total[1h]))",
-          "legendFormat": "{{conclusion}}"
-        }
-      ],
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "min": 0,
-          "noValue": "нет данных от сборщика",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "decimals": 0
-        },
-        "overrides": []
-      }
-    },
-    {
-      "type": "table",
-      "title": "Задания за сутки: сколько и сколько в среднем",
-      "id": 40,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 111
-      },
-      "description": "Каждое задание каждого workflow за последние сутки: число законченных и средняя длительность. Сверху — самые долгие в среднем.",
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sort_desc(sum by (repo, workflow, job, pool) (increase(ci_job_seconds_total[24h])) / sum by (repo, workflow, job, pool) (increase(ci_jobs_completed_total[24h])) > 0)",
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "refId": "B",
-          "expr": "sum by (repo, workflow, job, pool) (increase(ci_jobs_completed_total[24h])) > 0",
-          "instant": true,
-          "format": "table"
-        }
-      ],
-      "transformations": [
-        {
-          "id": "merge",
-          "options": {}
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
-            },
-            "renameByName": {
-              "repo": "репозиторий",
-              "workflow": "workflow",
-              "job": "задание",
-              "pool": "пул",
-              "Value #A": "в среднем",
-              "Value #B": "заданий"
-            }
-          }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "sort": [
-              {
-                "field": "в среднем",
-                "desc": true
-              }
-            ]
-          }
-        }
-      ],
-      "options": {
-        "showHeader": true
-      },
-      "fieldConfig": {
-        "defaults": {
-          "noValue": "нет данных от сборщика"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "в среднем"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "s"
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "заданий"
-            },
-            "properties": [
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Занятость раннеров",
-      "id": 41,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 121
-      },
-      "description": "Доля времени, которую каждый раннер был занят заданиями (по законченным заданиям, за час). У всех у 100 % при очереди — раннеров мало; у одного ноль — он не берёт задания.",
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by (runner) (rate(ci_runner_busy_seconds_total[1h]))",
-          "legendFormat": "{{runner}}"
-        }
-      ],
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "min": 0,
-          "noValue": "нет данных от сборщика",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "max": 1
-        },
-        "overrides": []
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Кэш GitHub Actions",
-      "id": 42,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 121
-      },
-      "description": "Размер кэша GitHub Actions по репозиториям (опрос раз в 10 минут). Потолок GitHub — 10 ГБ на репозиторий, дальше старые записи вытесняются. Долю попаданий в кэш GitHub не отдаёт; местный кэш раннеров (/srv/ci-cache) — в дашборде «Железо», «Кто занимает пул tank».",
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by (repo) (ci_actions_cache_bytes) > 0",
-          "legendFormat": "{{repo}}"
-        }
-      ],
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "min": 0,
-          "noValue": "нет данных от сборщика",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          }
-        },
-        "overrides": []
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Раннеры и ci-db: простой из-за квоты процессора",
-      "id": 43,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 129
-      },
-      "description": "Сколько секунд в секунду раннер или ci-db стоял, упёршись в квоту (сборщик cgroup-cpu-collect на хосте). Квоты на 22.09.2026: большой — 4 ядра, лёгкий — 3, ci-db — 2.",
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by (name) (rate(incus_cgroup_cpu_throttled_seconds_total{name=~\"ci-.*\"}[5m])) > 0",
-          "legendFormat": "{{name}}"
-        }
-      ],
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "min": 0,
-          "noValue": "простоя нет или сборщик не отвечает",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "decimals": 2
-        },
-        "overrides": []
-      }
-    },
-    {
-      "type": "row",
-      "title": "Автомасштабирование раннеров",
-      "id": 44,
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 13
-      },
-      "panels": [],
-      "description": "Контроллер ci-autoscaler на хосте поднимает раннеры под очередь и гасит лишние, не выходя за бюджет памяти кластера и за то, что может дать хост. Устройство и решения — docs/ci-autoscaler.md в репозитории home-server."
     },
     {
       "type": "stat",
       "title": "Контроллер раннеров",
-      "description": "Сколько секунд назад ci-autoscaler закончил такт (такт — 5 с). Больше минуты — контроллер стоит: раннеры это переживут (циклы, не видящие его пульса, работают по-старому), но новые не поднимутся и лишние не погаснут. На хосте: systemctl status ci-autoscaler.",
+      "description": "Сколько секунд назад ci-autoscaler закончил такт (такт — 5 с). Больше минуты — контроллер стоит: раннеры это переживут (циклы, не видящие его пульса, работают по-старому), но новые не поднимутся и лишние не погаснут. На хосте: systemctl status ci-autoscaler.\n\nТревоги по этой панели: «CI: контроллер раннеров молчит» (предупреждение: держится 3 мин).",
       "id": 45,
       "datasource": {
         "type": "prometheus",
@@ -2127,9 +986,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 14
+        "w": 6,
+        "x": 18,
+        "y": 9
       },
       "targets": [
         {
@@ -2147,7 +1006,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -2175,6 +1035,19 @@
       }
     },
     {
+      "type": "row",
+      "title": "Почему ждут: контроллер раннеров и память",
+      "id": 44,
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      }
+    },
+    {
       "type": "stat",
       "title": "Раннеров поднято",
       "description": "Слоты, на которых сейчас есть раннер: загружается, свободен или занят. Число меняется само: под очередь растёт, в тишине сжимается до min_idle (по одному свободному каждого класса).",
@@ -2185,8 +1058,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 4,
+        "w": 5,
+        "x": 0,
         "y": 14
       },
       "targets": [
@@ -2205,7 +1078,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -2239,8 +1113,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 8,
+        "w": 5,
+        "x": 5,
         "y": 14
       },
       "targets": [
@@ -2259,7 +1133,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -2289,8 +1164,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 12,
+        "w": 5,
+        "x": 10,
         "y": 14
       },
       "targets": [
@@ -2309,7 +1184,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -2323,7 +1199,7 @@
                 "value": null
               },
               {
-                "color": "yellow",
+                "color": "#EAB839",
                 "value": 0.85
               },
               {
@@ -2347,8 +1223,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 16,
+        "w": 5,
+        "x": 15,
         "y": 14
       },
       "targets": [
@@ -2367,7 +1243,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -2425,7 +1302,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -2439,7 +1317,7 @@
                 "value": null
               },
               {
-                "color": "yellow",
+                "color": "#EAB839",
                 "value": 1
               },
               {
@@ -2454,61 +1332,6 @@
     },
     {
       "type": "timeseries",
-      "title": "Раннеры по состоянию",
-      "description": "Сколько слотов в каждом состоянии. Загружается — откат на эталон и регистрация, около 15 с. Свободен — зарегистрирован и ждёт задание. Занят — выполняет задание.",
-      "id": 51,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 18
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by (state) (ci_autoscaler_slots{state!=\"off\"})",
-          "legendFormat": "{{state}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "min": 0,
-          "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 40,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "normal",
-              "group": "A"
-            }
-          },
-          "decimals": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "last",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "timeseries",
       "title": "Раннеры по классу и очередь",
       "description": "Поднятые раннеры каждого класса рядом с очередью на него. Класс слоту назначается на каждом цикле: под очередь лёгких занятый большой после задания может подняться лёгким, и наоборот.",
       "id": 52,
@@ -2519,7 +1342,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
+        "x": 0,
         "y": 18
       },
       "targets": [
@@ -2560,7 +1383,118 @@
           "calcs": [
             "last",
             "max"
-          ]
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Почему не поднимает новых",
+      "description": "1 — класс хочет подняться, но упёрся. budget — сумма потолков раннеров дошла до бюджета кластера (ci_mem_max): больше поднять можно, только увеличив бюджет. host — хосту не хватает памяти: занято прод, рендер или Windows-машины. pressure — давление на память у прода или служб хоста. cpu — давление на процессор. booting — ждёт очереди загрузок (не больше трёх разом). no_slots — все слоты уже подняты.\n\nТревоги по этой панели: «CI: раннерам не хватает памяти хоста» (предупреждение: держится 10 мин).",
+      "id": 54,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (class, reason) (ci_autoscaler_blocked) > 0",
+          "legendFormat": "{{class}}: {{reason}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 60,
+            "showPoints": "never",
+            "drawStyle": "bars",
+            "spanNulls": true
+          },
+          "decimals": 0,
+          "noValue": "Упоров нет"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Раннеры по состоянию",
+      "description": "Сколько слотов в каждом состоянии. Загружается — откат на эталон и регистрация, около 15 с. Свободен — зарегистрирован и ждёт задание. Занят — выполняет задание.",
+      "id": 51,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (state) (ci_autoscaler_slots{state!=\"off\"})",
+          "legendFormat": "{{state}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 40,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last",
+            "max"
+          ],
+          "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
@@ -2580,7 +1514,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 26
       },
       "targets": [
@@ -2630,59 +1564,8 @@
           "calcs": [
             "last",
             "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Почему не поднимает новых",
-      "description": "1 — класс хочет подняться, но упёрся. budget — сумма потолков раннеров дошла до бюджета кластера (ci_mem_max): больше поднять можно, только увеличив бюджет. host — хосту не хватает памяти: занято прод, рендер или Windows-машины. pressure — давление на память у прода или служб хоста. cpu — давление на процессор. booting — ждёт очереди загрузок (не больше трёх разом). no_slots — все слоты уже подняты.",
-      "id": 54,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "samoylove-prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 26
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "max by (class, reason) (ci_autoscaler_blocked) > 0",
-          "legendFormat": "{{class}}: {{reason}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "min": 0,
-          "custom": {
-            "lineWidth": 0,
-            "fillOpacity": 60,
-            "showPoints": "never",
-            "drawStyle": "bars"
-          },
-          "decimals": 0,
-          "noValue": "Упоров нет"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "last",
-            "max"
-          ]
+          ],
+          "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
@@ -2784,7 +1667,7 @@
     {
       "type": "timeseries",
       "title": "Действия контроллера",
-      "description": "Сколько раз за 10 минут контроллер поднял раннер (start), запарковал простаивающий (park), снял класс у занятого (drain — он запаркуется после задания), назначил занятому другой класс на следующий цикл (want), перезапустил зависшую загрузку (reboot). fail — действие не удалось; park raced — раннер успел взять задание, и его не тронули.",
+      "description": "Сколько раз за 10 минут контроллер поднял раннер (start), запарковал простаивающий (park), снял класс у занятого (drain — он запаркуется после задания), назначил занятому другой класс на следующий цикл (want), перезапустил зависшую загрузку (reboot). fail — действие не удалось; park raced — раннер успел взять задание, и его не тронули.\n\nТревоги по этой панели: «CI: контроллер не может поднять или погасить раннер» (предупреждение: не меньше 3).",
       "id": 56,
       "datasource": {
         "type": "prometheus",
@@ -2824,7 +1707,8 @@
           "calcs": [
             "last",
             "max"
-          ]
+          ],
+          "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
@@ -2834,17 +1718,1366 @@
     },
     {
       "type": "row",
-      "title": "Наборы Runner Scale Set",
-      "id": 57,
+      "title": "Очередь во времени",
+      "id": 15,
       "collapsed": false,
+      "panels": [],
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 137
+        "y": 42
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Задания в очереди",
+      "description": "Сколько заданий ждут раннер, по пулам. «Лестница», которая растёт и не опускается, — раннеры не успевают: слишком много параллельных PR и выкаток или раннер перестал брать задания.",
+      "id": 16,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 43
       },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (pool) (ci_jobs_queued)",
+          "legendFormat": "{{pool}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 25,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Самое старое задание в очереди",
+      "description": "Возраст самого старого ждущего задания по пулам. Пунктир — пороги тревоги: 10 минут для Linux, 15 минут для Windows.\n\nТревоги по этой панели: «CI: задание ждёт Linux-раннер дольше 10 минут» (предупреждение: дольше 10 мин, держится 5 мин); «CI: задание ждёт лёгкий раннер дольше 5 минут» (предупреждение: дольше 5 мин, держится 5 мин); «CI: задание ждёт win-builder дольше 15 минут» (предупреждение: дольше 15 мин, держится 5 мин).",
+      "id": 17,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 43
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (pool) (ci_job_queue_oldest_seconds{pool=~\"home-.*|set-.*\"})",
+          "legendFormat": "{{pool}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 600
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Идут и ждут — большие",
+      "description": "Идущие и ждущие задания Linux на фоне числа раннеров. Раннеров теперь столько, сколько поднял ci-autoscaler: если очередь стоит, а поднятых не прибавляется, — смотри «Почему не поднимает новых» выше.\n\nТревоги по этой панели: «CI: поднятые раннеры не видны в GitHub» (предупреждение: не меньше 2, держится 15 мин).",
+      "id": 19,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 51
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(ci_jobs_running{pool=~\"home-linux|set-heavy\"})",
+          "legendFormat": "идут"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(ci_jobs_queued{pool=~\"home-linux|set-heavy\"})",
+          "legendFormat": "ждут"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(ci_runners{os!=\"windows\",status=\"online\"})",
+          "legendFormat": "раннеров онлайн"
+        },
+        {
+          "refId": "D",
+          "expr": "sum(ci_autoscaler_slots{state!=\"off\"}) or vector(0)",
+          "legendFormat": "поднято контроллером"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Загрузка раннеров",
+      "description": "Доля собственных Linux-раннеров, занятых заданиями: идущие задания больших и лёгких, делённые на число раннеров онлайн. Долго у 100% при непустой очереди — раннеров не хватает. Сверху обрезано на 100%: GitHub ещё держит задание «идущим», когда одноразовый раннер уже снят, и после перезагрузки хоста отношение уходило за 250%.",
+      "id": 18,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 51
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "clamp_max(sum(ci_jobs_running{pool=~\"home-linux|home-light|set-heavy|set-light\"}) / clamp_min(sum(ci_runners{os!=\"windows\",status=\"online\"}), 1), 1)",
+          "legendFormat": "занято"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Сколько задания ждали и сколько шли",
+      "id": 20,
+      "collapsed": false,
       "panels": [],
-      "description": "Слушатель ci-scaleset держит наборы home-heavy и home-light: GitHub сам сообщает, сколько заданий назначено набору, и контроллер поднимает раннеры по этому числу сразу, без опроса."
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 59
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Ожидание до старта, p50 и p95",
+      "description": "Медиана и 95-й процентиль ожидания раннера за последний час, по пулам. Для Linux норма — секунды, для Windows — до двух минут (загрузка машины).",
+      "id": 21,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 60
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.5, sum by (le, pool) (rate(ci_job_queue_wait_seconds_bucket{pool=~\"home-.*|set-.*\"}[1h])))",
+          "legendFormat": "{{pool}} p50"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le, pool) (rate(ci_job_queue_wait_seconds_bucket{pool=~\"home-.*|set-.*\"}[1h])))",
+          "legendFormat": "{{pool}} p95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Доля заданий, ждавших дольше 5 минут",
+      "description": "Какая часть начавшихся за час заданий ждала раннер больше 5 минут. Больше 10% — очередь заметна людям.",
+      "id": 23,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 60
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "1 - sum by (pool) (rate(ci_job_queue_wait_seconds_bucket{pool=~\"home-.*|set-.*\",le=~\"300(.0)?\"}[1h])) / sum by (pool) (rate(ci_job_queue_wait_seconds_count{pool=~\"home-.*|set-.*\"}[1h]))",
+          "legendFormat": "{{pool}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Стартовало заданий в час",
+      "description": "Сколько заданий начались за час, по пулам — объём работы на раннерах.",
+      "id": 22,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 68
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (pool) (increase(ci_job_queue_wait_seconds_count[1h]))",
+          "legendFormat": "{{pool}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Очередь по репозиториям",
+      "description": "Чьи задания ждут: ждущие задания по репозиторию. Помогает понять, чья пачка PR заняла раннеры.",
+      "id": 24,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 68
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (repo) (ci_jobs_queued{repo!=\"\"})",
+          "legendFormat": "{{repo}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 25,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Длительность заданий, p50 и p95",
+      "id": 38,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 76
+      },
+      "description": "Медиана и 95-й процентиль длительности законченных заданий за час по пулам. Рост p95 при прежнем числе заданий — тесты стали тяжелее или раннерам тесно (см. квоты ниже).",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.5, sum by (le, pool) (rate(ci_job_duration_seconds_bucket[1h])))",
+          "legendFormat": "p50 {{pool}}"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le, pool) (rate(ci_job_duration_seconds_bucket[1h])))",
+          "legendFormat": "p95 {{pool}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "noValue": "нет данных от сборщика",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Законченные задания в час по исходу",
+      "id": 39,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 76
+      },
+      "description": "Сколько заданий закончилось за час: успех, провал, отмена. Всплеск отмен — обычно новый пуш поверх идущего прогона.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (conclusion) (increase(ci_jobs_completed_total[1h]))",
+          "legendFormat": "{{conclusion}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "noValue": "нет данных от сборщика",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "table",
+      "title": "Задания за сутки: сколько и сколько в среднем",
+      "id": 40,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 16,
+        "x": 0,
+        "y": 84
+      },
+      "description": "Каждое задание каждого workflow за последние сутки: число законченных и средняя длительность. Сверху — самые долгие в среднем.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sort_desc(sum by (repo, workflow, job, pool) (increase(ci_job_seconds_total[24h])) / sum by (repo, workflow, job, pool) (increase(ci_jobs_completed_total[24h])) > 0)",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (repo, workflow, job, pool) (increase(ci_jobs_completed_total[24h])) > 0",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "repo": "репозиторий",
+              "workflow": "workflow",
+              "job": "задание",
+              "pool": "пул",
+              "Value #A": "в среднем",
+              "Value #B": "заданий"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "в среднем",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "нет данных от сборщика"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "в среднем"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "заданий"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Занятость раннеров",
+      "id": 41,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 16,
+        "y": 84
+      },
+      "description": "Доля времени, которую каждый раннер был занят заданиями (по законченным заданиям, за час). У всех у 100 % при очереди — раннеров мало; у одного ноль — он не берёт задания.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (runner) (rate(ci_runner_busy_seconds_total[1h]))",
+          "legendFormat": "{{runner}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "noValue": "нет данных от сборщика",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "max": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Ресурсы раннеров и сироты docker",
+      "id": 25,
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 94
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Память раннеров без задания (сироты docker)",
+      "description": "Память раннеров, у которых по контроллеру сейчас нет задания. Пустой раннер занимает около 50 МБ; гигабайты в простое — docker-сборка упавшего прогона, которую GitHub уже закрыл, а процесс остался (26.09.2026 так восемь часов крутился devkita64). Такой раннер держит память хоста и мешает контроллеру поднимать новые. Плохо: выше 1,5 ГиБ дольше 20 минут — тревога «CI: сирота docker в раннере».\n\nТревоги по этой панели: «CI: сирота docker в раннере без задания» (предупреждение: больше 1,5 ГиБ, держится 20 мин).",
+      "id": 70,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(max by (name) (incus_memory_MemTotal_bytes{name=~\"ci-(runner|light).*\"} - incus_memory_MemAvailable_bytes{name=~\"ci-(runner|light).*\"})) * on(name) group_left() (max by (name) (label_replace(ci_autoscaler_slot{state=\"idle\"}, \"name\", \"$1\", \"slot\", \"(.*)\")) == 1)",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1610612736.0
+              }
+            ]
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 95
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Память раннеров",
+      "description": "Занятая память по раннерам (MemTotal − MemAvailable внутри инстанса). Лимиты на 22.09.2026: большой раннер — 4 ГиБ, лёгкий — 2 ГиБ, ci-db — 5 ГиБ, win-builder — 4 ГиБ. У остановленного инстанса линии нет.",
+      "id": 27,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 95
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(max by (name) (incus_memory_MemTotal_bytes{name=~\"ci-.*|win-builder\"} - incus_memory_MemAvailable_bytes{name=~\"ci-.*|win-builder\"})) > 0",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU раннеров, ядра",
+      "description": "Сколько ядер занимает каждый раннер. С 22.09.2026 раннеры и ci-db делят двенадцать потоков хоста (2–7 и 10–15) и ограничены квотой: большой — четыре ядра, лёгкий — три, ci-db — два. Линия, упёршаяся в свою квоту, значит, что задание ждёт процессор, а не диск или сеть.",
+      "id": 26,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 103
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (name) (rate(incus_cpu_seconds_total{name=~\"ci-.*|win-builder\",mode!=\"idle\"}[2m]))",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Раннеры и ci-db: простой из-за квоты процессора",
+      "id": 43,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 103
+      },
+      "description": "Сколько секунд в секунду раннер или ci-db стоял, упёршись в квоту (сборщик cgroup-cpu-collect на хосте). Квоты на 22.09.2026: большой — 4 ядра, лёгкий — 3, ci-db — 2.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (name) (rate(incus_cgroup_cpu_throttled_seconds_total{name=~\"ci-.*\"}[5m])) > 0",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "noValue": "простоя нет или сборщик не отвечает",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Сеть раннеров, приём",
+      "description": "Приём по раннерам: зависимости, образы, архивы действий. Узкое место дома — обход блокировок до github.com; медленный «Set up job» видно здесь.",
+      "id": 28,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 111
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (name) (rate(incus_network_receive_bytes_total{name=~\"ci-.*|win-builder\",device!=\"lo\"}[2m]))",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Диск раннеров, чтение",
+      "description": "Чтение с физических дисков, отнесённое к раннеру, — то, что не нашлось в ARC. Запись здесь не показывается: ZFS пишет группами транзакций от имени ядра, и Incus отдаёт для контейнеров ноль — прежняя панель записи рисовала нули у всех Linux-раннеров. Честная запись есть только у виртуалки win-builder и суммарно по дискам — в дашборде «Железо».",
+      "id": 29,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 111
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (name) (rate(incus_disk_read_bytes_total{name=~\"ci-.*|win-builder\"}[2m]))",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Кэши и общие тестовые базы (ci-db)",
+      "id": 33,
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 119
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Кэш GitHub Actions",
+      "id": 42,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 120
+      },
+      "description": "Размер кэша GitHub Actions по репозиториям (опрос раз в 10 минут). Потолок GitHub — 10 ГБ на репозиторий, дальше старые записи вытесняются. Долю попаданий в кэш GitHub не отдаёт; местный кэш раннеров (/srv/ci-cache) — в дашборде «Железо», «Кто занимает пул tank».",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (repo) (ci_actions_cache_bytes) > 0",
+          "legendFormat": "{{repo}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "noValue": "нет данных от сборщика",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "ci-db работает",
+      "id": 34,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 12,
+        "y": 120
+      },
+      "description": "Сколько ci-db работает с последнего запуска. Пусто — Incus о нём не знает: контейнер остановлен или удалён.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(incus_time_seconds{name=\"ci-db\"} - incus_boot_time_seconds{name=\"ci-db\"})",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "не запущен",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "ci-db: память",
+      "id": 35,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 120
+      },
+      "description": "Занятая память и лимит контейнера. Занятое у лимита — следующая пачка тестов получит убийство по памяти внутри баз (правая ось — сколько процессов убито за час).",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "incus_memory_MemTotal_bytes{name=\"ci-db\"}",
+          "legendFormat": "лимит"
+        },
+        {
+          "refId": "B",
+          "expr": "incus_memory_MemTotal_bytes{name=\"ci-db\"} - incus_memory_MemAvailable_bytes{name=\"ci-db\"}",
+          "legendFormat": "занято"
+        },
+        {
+          "refId": "C",
+          "expr": "increase(incus_memory_OOM_kills_total{name=\"ci-db\"}[1h])",
+          "legendFormat": "убито по памяти за час"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "убито по памяти за час"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "ci-db: процессор и чтение с диска",
+      "id": 36,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 128
+      },
+      "description": "Ядра, которые занимают базы (квота — два), и чтение с физических дисков (правая ось). Процессор у квоты во время прогонов — тесты ждут базы.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(incus_cpu_seconds_total{name=\"ci-db\"}[2m]))",
+          "legendFormat": "ядра"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(incus_disk_read_bytes_total{name=\"ci-db\"}[2m]))",
+          "legendFormat": "чтение"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "чтение"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "Bps"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "row",
+      "title": "Наборы Runner Scale Set",
+      "id": 57,
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 136
+      }
     },
     {
       "type": "stat",
@@ -2854,12 +3087,12 @@
         "type": "prometheus",
         "uid": "samoylove-prometheus"
       },
-      "description": "1 — сессии сообщений всех наборов открыты. 0 — хотя бы одна потеряна: слушатель переподключается сам (после падения сессия занята до минуты). Пока он молчит, контроллер берёт спрос у сборщика очереди, раз в 30 с.",
+      "description": "1 — сессии сообщений всех наборов открыты. 0 — хотя бы одна потеряна: слушатель переподключается сам (после падения сессия занята до минуты). Пока он молчит, контроллер берёт спрос у сборщика очереди, раз в 30 с.\n\nТревоги по этой панели: «CI: слушатель Runner Scale Set отключён» (предупреждение: держится 5 мин).",
       "gridPos": {
         "h": 8,
         "w": 4,
         "x": 0,
-        "y": 138
+        "y": 137
       },
       "targets": [
         {
@@ -2877,7 +3110,8 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -2928,7 +3162,7 @@
         "h": 8,
         "w": 10,
         "x": 4,
-        "y": 138
+        "y": 137
       },
       "targets": [
         {
@@ -2968,7 +3202,8 @@
           "calcs": [
             "last",
             "max"
-          ]
+          ],
+          "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
@@ -2989,7 +3224,7 @@
         "h": 8,
         "w": 10,
         "x": 14,
-        "y": 138
+        "y": 137
       },
       "targets": [
         {
@@ -3023,7 +3258,8 @@
           "calcs": [
             "last",
             "max"
-          ]
+          ],
+          "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
@@ -3044,7 +3280,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 146
+        "y": 145
       },
       "targets": [
         {
@@ -3074,7 +3310,8 @@
           "calcs": [
             "last",
             "max"
-          ]
+          ],
+          "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
@@ -3095,7 +3332,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 146
+        "y": 145
       },
       "targets": [
         {
@@ -3125,7 +3362,8 @@
           "calcs": [
             "last",
             "max"
-          ]
+          ],
+          "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
@@ -3133,5 +3371,6 @@
         }
       }
     }
-  ]
+  ],
+  "graphTooltip": 1
 }

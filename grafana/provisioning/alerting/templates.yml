@@ -1,0 +1,55 @@
+# Шаблон сообщения тревоги в Telegram. Контактная точка (contactpoints.yml)
+# зовёт его одной строкой: {{ template "tg.message" . }}.
+#
+# ЧТО В СООБЩЕНИИ И ПОЧЕМУ. Раньше в чат приходило имя правила, instance и
+# ссылка на общий список /alerting/list: чтобы понять, что случилось и
+# насколько плохо, приходилось открывать Grafana и искать панель руками. Теперь
+# у каждой тревоги:
+#   • заголовок — имя правила человеческим языком, с областью в начале;
+#   • область и уровень словами (авария / предупреждение / для сведения);
+#   • что случилось (summary) и где — метки ряда без служебных;
+#   • сейчас — значение из правила ($values.A) и порог словами;
+#   • что это значит и что делать (description);
+#   • ссылки: график — панель дашборда (viewPanel), к которой правило привязано
+#     аннотациями __dashboardUid__/__panelId__; окно from/to вокруг тревоги
+#     (час до начала — до сейчас или до конца) Grafana кладёт в PanelURL сама,
+#     проверено шаблоном на 13.2.2; что делать — раздел docs/runbook.md;
+#     заглушить — готовая тишина по меткам этой тревоги.
+#
+# РАЗМЕТКА — HTML, И ВСЁ ЧУЖОЕ ЭКРАНИРУЕТСЯ. Метки приходят в том числе из
+# журнала nginx (host) и из интернета; сломанная разметка — это 400 от
+# Telegram и авария, уехавшая в никуда. Поэтому каждый текст идёт через
+# tg.esc (&, <, > → сущности), а теги ставит только сам шаблон. Ссылки —
+# тоже через tg.esc: & в адресе внутри href Telegram принимает сущностью.
+#
+# Время — по Москве: сервер и владелец живут в одном поясе, а UTC в чате
+# ночью читается с ошибкой на три часа.
+
+apiVersion: 1
+
+templates:
+  - orgId: 1
+    name: telegram
+    template: |
+      {{ define "tg.esc" }}{{ . | reReplaceAll "&" "&amp;" | reReplaceAll "<" "&lt;" | reReplaceAll ">" "&gt;" }}{{ end }}
+
+      {{ define "tg.area" }}{{ if eq . "ci" }}CI{{ else if eq . "server" }}Сервер{{ else if eq . "cs2" }}Пристрелка{{ else if eq . "sites" }}Сайты{{ else if eq . "monitoring" }}Мониторинг{{ else }}{{ . }}{{ end }}{{ end }}
+
+      {{ define "tg.sev" }}{{ if eq . "critical" }}авария{{ else if eq . "warning" }}предупреждение{{ else if eq . "info" }}для сведения{{ else }}{{ . }}{{ end }}{{ end }}
+
+      {{ define "tg.icon" }}{{ if eq .Status "resolved" }}✅{{ else if eq .Labels.severity "critical" }}🔴{{ else if eq .Labels.severity "warning" }}🟠{{ else }}🔵{{ end }}{{ end }}
+
+      {{ define "tg.alert" }}
+      {{ template "tg.icon" . }} <b>{{ template "tg.esc" .Labels.alertname }}</b>
+      {{ template "tg.area" .Labels.area }} · {{ template "tg.sev" .Labels.severity }}{{ if eq .Status "resolved" }} · <b>прошло</b>{{ end }}
+      {{ with .Annotations.summary }}{{ template "tg.esc" . }}
+      {{ end }}{{ $where := "" }}{{ range .Labels.SortedPairs }}{{ if not (match "^(alertname|severity|area|grafana_folder|__name__|job|datasource_uid|ref_id)$" .Name) }}{{ $where = printf "%s%s=%s " $where .Name .Value }}{{ end }}{{ end }}{{ if $where }}Где: {{ template "tg.esc" $where }}
+      {{ end }}{{ if eq .Status "firing" }}{{ with .Annotations.value }}Сейчас: <b>{{ template "tg.esc" . }}</b>{{ end }}{{ with .Annotations.threshold }}{{ if $.Annotations.value }} · {{ end }}порог: {{ template "tg.esc" . }}{{ end }}{{ if or .Annotations.value .Annotations.threshold }}
+      {{ end }}{{ end }}С {{ .StartsAt | tz "Europe/Moscow" | date "02.01 15:04" }}{{ if eq .Status "resolved" }} до {{ .EndsAt | tz "Europe/Moscow" | date "15:04" }}{{ end }}
+      {{ with .Annotations.description }}
+      {{ template "tg.esc" . }}
+      {{ end }}
+      {{ if .PanelURL }}📈 <a href="{{ template "tg.esc" .PanelURL }}">график</a>{{ else if .DashboardURL }}📈 <a href="{{ template "tg.esc" .DashboardURL }}">дашборд</a>{{ end }}{{ with .Annotations.runbook_url }} · 📖 <a href="{{ template "tg.esc" . }}">что делать</a>{{ end }}{{ if and (eq .Status "firing") .SilenceURL }} · 🔕 <a href="{{ template "tg.esc" .SilenceURL }}">заглушить</a>{{ end }}
+      {{ end }}
+
+      {{ define "tg.message" }}{{ range .Alerts.Firing }}{{ template "tg.alert" . }}{{ end }}{{ range .Alerts.Resolved }}{{ template "tg.alert" . }}{{ end }}{{ end }}

@@ -1,0 +1,1255 @@
+{
+  "uid": "samoylove-ops",
+  "title": "Обзор — CI · Сервер · Пристрелка",
+  "description": "Стартовая страница оператора: светофор трёх областей, ключевые числа и всё, что горит. Цвет считает PromQL по тем же порогам, что тревоги; подробности — по ссылкам на дашборды областей.",
+  "tags": [
+    "samoy.love",
+    "обзор"
+  ],
+  "timezone": "browser",
+  "editable": false,
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "links": [
+    {
+      "title": "CI",
+      "type": "link",
+      "url": "/d/samoylove-ci",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tooltip": ""
+    },
+    {
+      "title": "Сервер",
+      "type": "link",
+      "url": "/d/samoylove-hardware",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tooltip": ""
+    },
+    {
+      "title": "Пристрелка",
+      "type": "link",
+      "url": "/d/samoylove-cs2",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tooltip": ""
+    },
+    {
+      "title": "Сайты",
+      "type": "link",
+      "url": "/d/samoylove-overview",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tooltip": ""
+    },
+    {
+      "title": "Тревоги",
+      "type": "link",
+      "url": "/alerting/list?view=list&search=state:firing",
+      "icon": "bolt",
+      "targetBlank": false,
+      "keepTime": false,
+      "includeVars": false,
+      "tooltip": "Что горит сейчас"
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": []
+  },
+  "version": 2,
+  "panels": [
+    {
+      "type": "row",
+      "title": "Светофор: CI · Сервер · Пристрелка",
+      "id": 1,
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "type": "stat",
+      "title": "CI",
+      "description": "Светофор области: зелёный — ни один ключевой признак не сработал, жёлтый — есть предупреждение, красный — авария. Признаки: задания ждут раннера дольше порога (Linux 10 мин, лёгкие 5, Windows 15), молчит контроллер раннеров или сборщик очереди, в простаивающем раннере крутится сирота docker. Это короткая выжимка; полный список горящих тревог — ниже, подробности — на дашборде области (ссылка в углу панели).",
+      "id": 2,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(\n  label_replace(vector(0), \"signal\", \"ok\", \"\", \"\")\n  or label_replace((count((max(ci_job_queue_oldest_seconds{pool=~\"home-linux|set-heavy\"}) > 600)) > 0) * 0 + 1, \"signal\", \"очередь_linux\", \"\", \"\")\n  or label_replace((count((max(ci_job_queue_oldest_seconds{pool=~\"home-light|set-light\"}) > 300)) > 0) * 0 + 1, \"signal\", \"очередь_лёгкие\", \"\", \"\")\n  or label_replace((count((max(ci_job_queue_oldest_seconds{pool=\"home-windows\"}) > 900)) > 0) * 0 + 1, \"signal\", \"очередь_windows\", \"\", \"\")\n  or label_replace((count((time() - max(ci_autoscaler_timestamp_seconds) > 120)) > 0) * 0 + 1, \"signal\", \"контроллер\", \"\", \"\")\n  or label_replace((count((time() - max(ci_queue_collect_timestamp_seconds) > 600)) > 0) * 0 + 1, \"signal\", \"сборщик_очереди\", \"\", \"\")\n  or label_replace((count(((max by (name) (incus_memory_MemTotal_bytes{name=~\"ci-(runner|light).*\"} - incus_memory_MemAvailable_bytes{name=~\"ci-(runner|light).*\"})) * on(name) group_left() (max by (name) (label_replace(ci_autoscaler_slot{state=\"idle\"}, \"name\", \"$1\", \"slot\", \"(.*)\")) == 1) > 1.5 * 1024^3)) > 0) * 0 + 1, \"signal\", \"сирота_docker\", \"\", \"\")\n)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "в порядке",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "предупреждение",
+                  "color": "#EAB839",
+                  "index": 1
+                },
+                "2": {
+                  "text": "авария",
+                  "color": "red",
+                  "index": 2
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "links": [
+        {
+          "title": "Открыть «CI»",
+          "url": "/d/samoylove-ci?${__url_time_range}",
+          "targetBlank": false
+        }
+      ],
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Сервер",
+      "description": "Светофор области: зелёный — ни один ключевой признак не сработал, жёлтый — есть предупреждение, красный — авария. Признаки: пул ZFS не ONLINE или заполнен больше 90%, диск сообщает о поломке, инстанс с автозапуском лежит, ядро убивало процессы от нехватки памяти (всё это — авария); хост задыхается без памяти, ZFS больше 80%, не собираются метрики хоста, упал юнит (предупреждение). Это короткая выжимка; полный список горящих тревог — ниже, подробности — на дашборде области (ссылка в углу панели).",
+      "id": 3,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(\n  label_replace(vector(0), \"signal\", \"ok\", \"\", \"\")\n  or label_replace((count((zpool_health_state != 0)) > 0) * 0 + 2, \"signal\", \"zfs\", \"\", \"\")\n  or label_replace((count((smart_device_healthy == 0)) > 0) * 0 + 2, \"signal\", \"smart\", \"\", \"\")\n  or label_replace((count((zpool_capacity_ratio > 0.9)) > 0) * 0 + 2, \"signal\", \"zfs_полон\", \"\", \"\")\n  or label_replace((count((incus_instance_running{autostart=\"true\"} == 0)) > 0) * 0 + 2, \"signal\", \"инстанс_лежит\", \"\", \"\")\n  or label_replace((count((increase(host_global_oom_kills_total[15m]) > 0)) > 0) * 0 + 2, \"signal\", \"oom_хоста\", \"\", \"\")\n  or label_replace((count((rate(node_pressure_memory_stalled_seconds_total{job=\"node-host\"}[5m]) > 0.2)) > 0) * 0 + 1, \"signal\", \"память\", \"\", \"\")\n  or label_replace((count((zpool_capacity_ratio > 0.8)) > 0) * 0 + 1, \"signal\", \"zfs_заполняется\", \"\", \"\")\n  or label_replace((count((up{job=~\"node-host|incus|cs2-win\"} == 0)) > 0) * 0 + 1, \"signal\", \"сбор\", \"\", \"\")\n  or label_replace((count((node_systemd_unit_state{instance=\"srv-host\",state=\"failed\"} == 1)) > 0) * 0 + 1, \"signal\", \"юниты\", \"\", \"\")\n)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "в порядке",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "предупреждение",
+                  "color": "#EAB839",
+                  "index": 1
+                },
+                "2": {
+                  "text": "авария",
+                  "color": "red",
+                  "index": 2
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "links": [
+        {
+          "title": "Открыть «Сервер»",
+          "url": "/d/samoylove-hardware?${__url_time_range}",
+          "targetBlank": false
+        }
+      ],
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Пристрелка",
+      "description": "Светофор области: зелёный — ни один ключевой признак не сработал, жёлтый — есть предупреждение, красный — авария. Признаки: сайт не открывается, служба или базы не отвечают, больше 5% пятисоток, демки исчезают у Valve, цепочку никто не ведёт (авария); нет связи с Valve, матч ждёт больше двух часов, машина рендера молчит, заказ клипа ждёт больше получаса, движок съёмки сломан (предупреждение). Это короткая выжимка; полный список горящих тревог — ниже, подробности — на дашборде области (ссылка в углу панели).",
+      "id": 4,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(\n  label_replace(vector(0), \"signal\", \"ok\", \"\", \"\")\n  or label_replace((count((probe_success{instance=\"https://cs.samoy.love/\"} == 0)) > 0) * 0 + 2, \"signal\", \"сайт\", \"\", \"\")\n  or label_replace((count((up{job=\"cs2-api\"} == 0)) > 0) * 0 + 2, \"signal\", \"служба\", \"\", \"\")\n  or label_replace((count((cs2_ready == 0)) > 0) * 0 + 2, \"signal\", \"базы\", \"\", \"\")\n  or label_replace((count((sum(rate(cs2_http_requests_total{code=~\"5..\"}[15m])) / clamp_min(sum(rate(cs2_http_requests_total[15m])), 0.0001) > 0.05)) > 0) * 0 + 2, \"signal\", \"пятисотки\", \"\", \"\")\n  or label_replace((count((cs2_chain_demos_expiring_soon > 0)) > 0) * 0 + 2, \"signal\", \"демки_исчезают\", \"\", \"\")\n  or label_replace((count((max(cs2_chain_leader{state=\"leading\"}) == 0)) > 0) * 0 + 2, \"signal\", \"цепочка\", \"\", \"\")\n  or label_replace((count((cs2_gc_ready == 0)) > 0) * 0 + 1, \"signal\", \"valve\", \"\", \"\")\n  or label_replace((count((max(cs2_chain_waiting_seconds) > 7200)) > 0) * 0 + 1, \"signal\", \"матч_ждёт\", \"\", \"\")\n  or label_replace((count((cs2_render_heartbeat_age_seconds > 600)) > 0) * 0 + 1, \"signal\", \"машина_рендера\", \"\", \"\")\n  or label_replace((count((max(cs2_render_waiting_seconds{class=~\"order|paid\"}) > 1800)) > 0) * 0 + 1, \"signal\", \"заказ_ждёт\", \"\", \"\")\n  or label_replace((count((cs2_render_engine_ok == 0)) > 0) * 0 + 1, \"signal\", \"движок\", \"\", \"\")\n)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "в порядке",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "предупреждение",
+                  "color": "#EAB839",
+                  "index": 1
+                },
+                "2": {
+                  "text": "авария",
+                  "color": "red",
+                  "index": 2
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "links": [
+        {
+          "title": "Открыть «Пристрелка»",
+          "url": "/d/samoylove-cs2?${__url_time_range}",
+          "targetBlank": false
+        }
+      ],
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "CI: ждут Linux",
+      "description": "Заданий в очереди на большие Linux-раннеры (свои и наборы).",
+      "id": 10,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(ci_jobs_queued{pool=~\"home-linux|set-heavy\"})",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 6
+      }
+    },
+    {
+      "type": "stat",
+      "title": "CI: дольше всех ждёт",
+      "description": "Сколько ждёт раннера самое старое задание на своих раннерах. Порог тревоги — 10 минут для Linux.",
+      "id": 11,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(ci_job_queue_oldest_seconds{pool=~\"home-.*|set-.*\"}) or vector(0)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 600
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 6
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Память: задачи ждут",
+      "description": "Доля времени, когда все задачи хоста стоят в ожидании памяти (PSI full). Порог тревоги — 20%.",
+      "id": 20,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(node_pressure_memory_stalled_seconds_total{job=\"node-host\"}[5m])",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.05
+              },
+              {
+                "color": "red",
+                "value": 0.2
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 6
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Пул tank заполнен",
+      "description": "Заполненность пула ZFS tank: на нём живут все контейнеры, демки и клипы.",
+      "id": 21,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(zpool_capacity_ratio{pool=\"tank\"})",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.8
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 6
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Сайт: пятисоток",
+      "description": "Доля ответов сайта с кодом 5xx за час.",
+      "id": 30,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum(rate(cs2_http_requests_total{code=~\"5..\"}[1h])) or vector(0)) / clamp_min(sum(rate(cs2_http_requests_total[1h])), 0.0001)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.01
+              },
+              {
+                "color": "red",
+                "value": 0.05
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 6
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Матч ждёт дольше всех",
+      "description": "Сколько ждёт самый старый матч на любом шаге цепочки «матчи приходят сами».",
+      "id": 31,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(cs2_chain_waiting_seconds)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 3600
+              },
+              {
+                "color": "red",
+                "value": 7200
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 6
+      }
+    },
+    {
+      "type": "stat",
+      "title": "CI: раннеров онлайн",
+      "description": "Linux-раннеров, которые GitHub видит онлайн.",
+      "id": 12,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(ci_runners{os!=\"windows\",status=\"online\"}) or vector(0)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 10
+      }
+    },
+    {
+      "type": "stat",
+      "title": "CI: успешных за сутки",
+      "description": "Доля успешных заданий за сутки на своих раннерах.",
+      "id": 13,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(ci_jobs_completed_total{conclusion=\"success\"}[1d])) / clamp_min(sum(increase(ci_jobs_completed_total{conclusion=~\"success|failure\"}[1d])), 1)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.8
+              },
+              {
+                "color": "green",
+                "value": 0.95
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 10
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Температура CPU",
+      "description": "Температура процессора хоста. Упор в 95 °C под нагрузкой — штатная работа этого процессора (он сам держит предел); плохо выше 97 °C или у 95 °C при частоте ниже базовой.",
+      "id": 22,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(node_hwmon_temp_celsius * on(chip) group_left(chip_name) node_hwmon_chip_names{chip_name=\"k10temp\"})",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 95
+              },
+              {
+                "color": "red",
+                "value": 97
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 10
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Убито по памяти за сутки",
+      "description": "Процессов, убитых OOM-killer в контейнерах и на хосте за сутки.",
+      "id": 23,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(incus_memory_OOM_kills_total[1d])) + (sum(increase(host_global_oom_kills_total{job=\"node-host\"}[1d])) or vector(0))",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 10
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Заказ клипа ждёт",
+      "description": "Сколько ждёт самый старый заказ клипа человека (без промо), который можно взять сейчас.",
+      "id": 32,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(cs2_render_waiting_seconds{class=~\"order|paid\"}) or vector(0)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 900
+              },
+              {
+                "color": "red",
+                "value": 1800
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 10
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Клипов и роликов за сутки",
+      "description": "Готовых за сутки клипов и роликов на всех машинах рендера.",
+      "id": 33,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(cs2_render_finished_day{result=\"done\"})",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 10
+      }
+    },
+    {
+      "type": "row",
+      "title": "Что горит сейчас",
+      "id": 40,
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      }
+    },
+    {
+      "type": "alertlist",
+      "title": "CI: тревоги",
+      "description": "Горящие и ждущие тревоги области CI. Имя тревоги ведёт к правилу, у правила — ссылка на панель и что делать.",
+      "id": 41,
+      "options": {
+        "viewMode": "list",
+        "groupMode": "default",
+        "groupBy": [],
+        "maxItems": 20,
+        "sortOrder": 3,
+        "dashboardAlerts": false,
+        "alertName": "",
+        "alertInstanceLabelFilter": "{area=\"ci\"}",
+        "datasource": "grafana",
+        "folder": null,
+        "stateFilter": {
+          "firing": true,
+          "pending": true,
+          "noData": false,
+          "normal": false,
+          "error": true,
+          "recovering": true
+        },
+        "showInstances": true
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 0,
+        "y": 15
+      }
+    },
+    {
+      "type": "alertlist",
+      "title": "Сервер: тревоги",
+      "description": "Горящие и ждущие тревоги сервера: хост, диски, контейнеры, cs2-win, мониторинг.",
+      "id": 42,
+      "options": {
+        "viewMode": "list",
+        "groupMode": "default",
+        "groupBy": [],
+        "maxItems": 20,
+        "sortOrder": 3,
+        "dashboardAlerts": false,
+        "alertName": "",
+        "alertInstanceLabelFilter": "{area=\"server\"}",
+        "datasource": "grafana",
+        "folder": null,
+        "stateFilter": {
+          "firing": true,
+          "pending": true,
+          "noData": false,
+          "normal": false,
+          "error": true,
+          "recovering": true
+        },
+        "showInstances": true
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 8,
+        "y": 15
+      }
+    },
+    {
+      "type": "alertlist",
+      "title": "Пристрелка: тревоги",
+      "description": "Горящие и ждущие тревоги сервиса cs.samoy.love: сайт, цепочка матчей, разбор, рендер, доставка, музыка.",
+      "id": 43,
+      "options": {
+        "viewMode": "list",
+        "groupMode": "default",
+        "groupBy": [],
+        "maxItems": 20,
+        "sortOrder": 3,
+        "dashboardAlerts": false,
+        "alertName": "",
+        "alertInstanceLabelFilter": "{area=\"cs2\"}",
+        "datasource": "grafana",
+        "folder": null,
+        "stateFilter": {
+          "firing": true,
+          "pending": true,
+          "noData": false,
+          "normal": false,
+          "error": true,
+          "recovering": true
+        },
+        "showInstances": true
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 16,
+        "y": 15
+      }
+    },
+    {
+      "type": "row",
+      "title": "Остальное",
+      "id": 50,
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      }
+    },
+    {
+      "type": "alertlist",
+      "title": "Сайты и проекты: тревоги",
+      "description": "Тревоги остальных сайтов samoy.love: доступность, лаунчер, змейки, статус-страница.",
+      "id": 51,
+      "options": {
+        "viewMode": "list",
+        "groupMode": "default",
+        "groupBy": [],
+        "maxItems": 20,
+        "sortOrder": 3,
+        "dashboardAlerts": false,
+        "alertName": "",
+        "alertInstanceLabelFilter": "{area=\"sites\"}",
+        "datasource": "grafana",
+        "folder": null,
+        "stateFilter": {
+          "firing": true,
+          "pending": true,
+          "noData": false,
+          "normal": false,
+          "error": true,
+          "recovering": true
+        },
+        "showInstances": true
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      }
+    },
+    {
+      "type": "alertlist",
+      "title": "Мониторинг: тревоги",
+      "description": "Тревоги самого мониторинга: сбор метрик, Prometheus, Grafana. Пока горят — остальным графикам верить нельзя.",
+      "id": 52,
+      "options": {
+        "viewMode": "list",
+        "groupMode": "default",
+        "groupBy": [],
+        "maxItems": 20,
+        "sortOrder": 3,
+        "dashboardAlerts": false,
+        "alertName": "",
+        "alertInstanceLabelFilter": "{area=\"monitoring\"}",
+        "datasource": "grafana",
+        "folder": null,
+        "stateFilter": {
+          "firing": true,
+          "pending": true,
+          "noData": false,
+          "normal": false,
+          "error": true,
+          "recovering": true
+        },
+        "showInstances": true
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      }
+    }
+  ]
+}

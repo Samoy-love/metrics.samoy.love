@@ -16,14 +16,16 @@
 # и хотя бы одной панели, которую алерт может отрисовать — то есть данные
 # правила (data: A) должны быть тем же запросом, что виден на дашборде.
 #
-# Сообщение — БЕЗ HTML-разметки, хотя раньше в Alertmanager она была. Причина
-# та же, что заставила исходный шаблон экранировать значения через `| html`:
-# instance и host в конечном счёте приходят из журнала nginx, то есть из
-# интернета, а сломанная разметка — это 400 от Telegram и авария, уехавшая в
-# никуда. У Alertmanager был готовый фильтр `html`; funcmap шаблонов Grafana
-# его не гарантирует, а рисковать доставкой ради жирного шрифта не стоит.
-# Раз тегов нет — экранировать нечего, а Telegram эмодзи в plain text
-# принимает как есть.
+# Сообщение — шаблон "tg.message" из templates.yml: заголовок, область,
+# что случилось и где, значение и порог, что делать, ссылки на панель с окном
+# вокруг начала тревоги, на раздел runbook и на тишину. Разметка — HTML
+# (parse_mode ниже), и всё чужое в шаблоне экранируется: до 29.09.2026 здесь
+# стоял голый текст без разметки как раз из-за меток, приходящих из журнала
+# nginx, — экранирование закрывает тот же риск, не отказываясь от ссылок.
+#
+# disable_web_page_preview — без него Telegram приклеивал к сообщению карточку
+# страницы входа Grafana: ссылка ведёт за basic-auth, и предпросмотр её —
+# пустая форма.
 
 apiVersion: 1
 
@@ -38,11 +40,7 @@ contactPoints:
           chatid: "173418650"
           disable_notifications: false
           uploadImage: true
-          message: |-
-            {{ if eq .Status "firing" }}🔴{{ else }}✅{{ end }} {{ .CommonLabels.severity | toUpper }}{{ if eq .Status "resolved" }} — восстановлено{{ end }}
-            {{ range .Alerts }}
-            {{ .Labels.alertname }}{{ if .Labels.instance }} · {{ .Labels.instance }}{{ end }}
-            {{ .Annotations.summary }}
-            {{ end }}
-            {{ .ExternalURL }}alerting/list
+          parse_mode: HTML
+          disable_web_page_preview: true
+          message: '{{ template "tg.message" . }}'
         disableResolveMessage: false
