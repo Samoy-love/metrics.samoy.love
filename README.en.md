@@ -246,10 +246,15 @@ would have to travel.
 |---|---|
 | `docker-compose.yml` | the whole stack: images, limits, volumes, `127.0.0.1` bindings |
 | `prometheus/prometheus.yml` | scrape targets and intervals (no rules — those live in Grafana) |
-| `grafana/provisioning/alerting/rules.yml` | alert rules: host, units, sites, launcher, snakes, status page |
-| `grafana/provisioning/alerting/contactpoints.yml` | Telegram receiver, token, message template, screenshot |
-| `grafana/provisioning/alerting/policies.yml` | routing by `severity` |
-| `grafana/dashboards/overview.json` | summary: project availability, traffic, server resources |
+| `grafana/provisioning/alerting/rules.yml` | alert rules by area (`area`): CI, server, Pristrelka, sites, monitoring |
+| `grafana/provisioning/alerting/templates.yml` | Telegram message template: what, where, value, threshold, links to panel and runbook |
+| `grafana/provisioning/alerting/contactpoints.yml` | Telegram receiver, token, markup, screenshot |
+| `grafana/provisioning/alerting/policies.yml` | routing by `severity`, grouping by area and rule name |
+| `grafana/dashboards/ops.json` | "Overview" home page: CI · Server · Pristrelka traffic lights and everything firing |
+| `grafana/dashboards/ci.json` | CI: queue, runner controller, durations, orphaned docker builds, caches, ci-db |
+| `grafana/dashboards/hardware.json` | server: memory pressure, ZFS and NVMe, Incus instances, render machines, network |
+| `grafana/dashboards/cs2.json` | Pristrelka (cs.samoy.love): site, match chain, parsing, rendering, delivery, music, databases |
+| `grafana/dashboards/overview.json` | samoy.love sites: availability, traffic, the web container, monitoring itself |
 | `grafana/dashboards/chillhub.json` | launcher: site, public API, admin panel, client telemetry |
 | `grafana/dashboards/snakes.json` | snakes: matches, combat, connections, server tick |
 | `grafana/dashboards/die.json` | Double or Die: availability and traffic |
@@ -262,6 +267,8 @@ would have to travel.
 | `server/bootstrap.sh` | one-time secret setup on the server, bot token included |
 | `deploy/systemd/samoylove-metrics.service` | systemd unit wrapping `docker compose` for deploy-kit |
 | `docs/render-dashboards.sh` | capture dashboard PNGs, run on the server |
+| `docs/runbook.md` | what each alert means and what to do; generated from `rules.yml` (Russian) |
+| `ci/alerts.py` | checks alerts against panels and the runbook, panel descriptions; builds `docs/runbook.md` |
 | `.env.example` | template for `.env`: Grafana admin, bot token, renderer secret |
 
 ## What is guaranteed, and what checks it
@@ -281,9 +288,13 @@ So CI checks exactly that class of failure.
 | Metrics are not reachable from the internet | containers bind `127.0.0.1`, nginx with basic auth in front |
 | History survives a container recreate | named Docker volumes, not directories in the repository |
 | Panels and alert rules survive the loss of the Grafana volume | dashboards, data source and alerting are provisioned from files |
+| Every alert links to an existing panel and to its runbook section, and carries an area and a severity | `ci/alerts.py` in CI |
+| Every panel has a description, panel ids are unique within a dashboard | `ci/alerts.py` in CI |
+| `docs/runbook.md` matches the rules | `ci/alerts.py` rebuilds and compares it |
 
 **What CI does NOT check** after the move to Grafana: `rules.yml`,
-`contactpoints.yml` and `policies.yml` only get YAML syntax checked. Semantics
+`contactpoints.yml` and `policies.yml` get YAML syntax and the link check of
+`ci/alerts.py`, not the provisioning schema. Semantics
 — the right node type inside `data`, a real datasource uid, the condition
 schema — used to be `promtool check rules` / `amtool check-config` for
 Prometheus/Alertmanager; there is no equivalent CLI for Grafana's provisioning
@@ -293,8 +304,14 @@ bring the stack up and look, a green CI run is not the full guarantee here.
 
 The rules are an explicit list of what counts as an incident, and the state of
 every one of them is visible in Grafana at `/alerting/list`. Each must carry a
-`severity` label: routing splits on that label and nothing else, so a rule
-without it quietly joins the slow lane instead of waking anyone.
+`severity` label — routing splits on that label and nothing else, so a rule
+without it quietly joins the slow lane instead of waking anyone — and an `area`
+label (`ci`, `server`, `cs2`, `sites`, `monitoring`) that puts it on its area's
+traffic light and alert list on the "Overview" dashboard. Since 29.09.2026 all
+rules are written in Russian, like the `product-cs2` group was since
+10.09.2026: the name starts with the area, and each rule carries `summary`,
+`description`, `value`, `threshold`, `runbook_url` and the panel the Telegram
+message links to (the template lives in `templates.yml`).
 
 The exact rule count is deliberately absent here. It used to sit in this
 paragraph and drifted away from reality silently — precisely the way of being

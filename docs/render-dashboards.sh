@@ -95,6 +95,7 @@ shot() {
 #   for f in grafana/dashboards/*.json; do python -c "import json,sys;d=json.load(
 #     open(sys.argv[1],encoding='utf-8'));print(d['uid'], max(p['gridPos']['y']+
 #     p['gridPos']['h'] for p in d['panels'])*38+90)" "$f"; done
+shot samoylove-ops        dashboard-ops.png 1230
 shot samoylove-overview   dashboard-overview.png 1876
 shot samoylove-chillhub   dashboard-chillhub.png 3054
 shot samoylove-snakes     dashboard-snakes.png 2256
@@ -105,4 +106,4 @@ shot samoylove-status     dashboard-status.png 2294
 
 echo
 echo "Готово. Забрать к себе и положить в docs/ репозитория:"
-echo "  scp oracle:$OUT/dashboard-overview.png oracle:$OUT/dashboard-chillhub.png oracle:$OUT/dashboard-snakes.png oracle:$OUT/dashboard-die.png oracle:$OUT/dashboard-metro.png oracle:$OUT/dashboard-samoylove.png oracle:$OUT/dashboard-status.png docs/"
+echo "  scp oracle:$OUT/dashboard-ops.png oracle:$OUT/dashboard-overview.png oracle:$OUT/dashboard-chillhub.png oracle:$OUT/dashboard-snakes.png oracle:$OUT/dashboard-die.png oracle:$OUT/dashboard-metro.png oracle:$OUT/dashboard-samoylove.png oracle:$OUT/dashboard-status.png docs/"
