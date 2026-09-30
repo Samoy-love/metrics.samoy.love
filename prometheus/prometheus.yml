@@ -141,6 +141,34 @@ scrape_configs:
     file_sd_configs:
       - files: ["/etc/prometheus/targets/cs2.yml"]
 
+  # Базы Пристрелки в том же контейнере (с 30.09.2026). ClickHouse отдаёт
+  # встроенные метрики сам (/metrics на :9363, через прокси сокета — сервер
+  # слушает только петлю), Postgres — через prometheus-postgres-exporter под
+  # ролью с pg_monitor, только чтение. Порты открыты одному Prometheus из web
+  # правилами хоста. Адреса — в file_sd вне репозитория, как у cs2-api.
+  #
+  # У ClickHouse около 3,4 тыс. рядов, большая часть — счётчики событий и
+  # асинхронные метрики; раз в минуту, а не в 30 с: разрешение выше здесь не
+  # нужно, а база Prometheus растёт вдвое медленнее.
+  - job_name: cs2-clickhouse
+    scrape_interval: 60s
+    file_sd_configs:
+      - files: ["/etc/prometheus/targets/cs2-clickhouse.yml"]
+
+  - job_name: cs2-postgres
+    file_sd_configs:
+      - files: ["/etc/prometheus/targets/cs2-postgres.yml"]
+
+  # node_exporter внутри контейнеров cs2-render, ci-db и games (с 30.09.2026):
+  # файловые системы, процессы, сеть и нагрузка изнутри, чего встроенный
+  # экспортёр Incus не показывает. Отдельный job, а не node: правила о web
+  # (корень, юниты) выбирают свои ряды без метки job, и контейнеры в них
+  # попадать не должны. Метка instance — имя контейнера, из file_sd.
+  - job_name: node-containers
+    scrape_interval: 60s
+    file_sd_configs:
+      - files: ["/etc/prometheus/targets/node-containers.yml"]
+
   # --- Посещаемость статики -------------------------------------------------
   # Экспортёр журнала nginx: статика всех сайтов домена. Клиентских
   # счётчиков на этих сайтах нет и не будет — см. nginxlog/nginxlog.yml.

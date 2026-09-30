@@ -7,8 +7,8 @@
 Уровни: **авария** — чинить сейчас, напоминание раз в 4 часа; **предупреждение** — раз в сутки;
 **для сведения** — не требует действий.
 
-- [CI](#ci-area) — 10
-- [Сервер](#server-area) — 34
+- [CI](#ci-area) — 11
+- [Сервер](#server-area) — 39
 - [Пристрелка](#cs2-area) — 64
 - [Сайты и проекты](#sites-area) — 39
 - [Мониторинг](#monitoring-area) — 11
@@ -157,6 +157,26 @@ min_over_time(((sum(ci_autoscaler_slots{state=~"idle|busy"}) or vector(0)) - (su
 
 </details>
 
+<a id="ci-autoscaler-cpu-bound"></a>
+
+### CI: раннерам не хватает ядер
+
+**предупреждение** · порог: держится 10 мин · панель: [CI — раннеры, очередь, задания → Почему не поднимает новых](https://metrics.samoy.love/d/samoylove-ci?viewPanel=54)
+
+**Что случилось.** Контроллер упёрся в набор ядер, а задания ждут дольше 15 минут
+
+**Что это значит и что делать.** Задание ждёт раннер больше 15 минут, и контроллер не поднимает новый: общий набор ядер раннеров (cpu_pool) с учётом ожидаемого расхода уже занят. Если ядра набора на деле простаивают, ожидаемый расход завышен: смотреть ci_autoscaler_cpu_pool_cores (used, reserved, max) и cpu_pool_max в /etc/ci-autoscaler.toml на хосте. Если заняты, CI упирается в процессор, и новый раннер только растянул бы все задания.
+
+<details><summary>Условие</summary>
+
+```promql
+(max(ci_autoscaler_blocked{reason="cpu_pool"}) == 1) and on() (max(ci_job_queue_oldest_seconds{pool=~"home-linux|home-light|set-heavy|set-light"}) > 900)
+```
+
+Держится: 10m · группа `infra-ci` · uid `ci-autoscaler-cpu-bound`
+
+</details>
+
 <a id="ci-queue-collector-stale"></a>
 
 ### CI: сборщик очереди GitHub молчит
@@ -254,7 +274,7 @@ zpool_device_errors_total > 0
 <details><summary>Условие</summary>
 
 ```promql
-node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.10
+node_filesystem_avail_bytes{mountpoint="/",job!="node-containers"} / node_filesystem_size_bytes{mountpoint="/",job!="node-containers"} < 0.10
 ```
 
 Держится: 15m · группа `infra-host` · uid `infra-disk-space-low`
@@ -501,6 +521,26 @@ node_hwmon_temp_celsius{sensor="temp1"} * on(chip) group_left(chip_name) node_hw
 
 </details>
 
+<a id="hw-win-commit-over-physical"></a>
+
+### Сервер: cs2-win живёт в файле подкачки
+
+**предупреждение** · порог: выделено больше физической и больше 1000 опер/с, держится 30 мин · панель: [Сервер — хост, диски, контейнеры, машины рендера → Windows: память](https://metrics.samoy.love/d/samoylove-hardware?viewPanel=74)
+
+**Что случилось.** Windows на cs2-win выделила больше памяти, чем есть, и гоняет подкачку
+
+**Что это значит и что делать.** Выделенная память Windows больше физической, и подкачка идёт быстрее 1000 операций в секунду полчаса подряд. Каждая такая операция — запись на NVMe хоста: 30.09.2026 подкачка cs2-win давала около 290 ГБ записи в сутки. На панели видно, какой процесс раздулся: чаще всего клиент Steam (с cs2#866 он перезапускается сам) или зависшая игра. На машине: ssh render@cs2-win, Get-Process | Sort-Object WS -Descending.
+
+<details><summary>Условие</summary>
+
+```promql
+((windows_memory_committed_bytes{job="cs2-win"} / windows_memory_physical_total_bytes{job="cs2-win"}) > 1) and on(instance) (rate(windows_memory_swap_page_operations_total{job="cs2-win"}[30m]) > 1000)
+```
+
+Держится: 30m · группа `infra-hardware` · uid `hw-win-commit-over-physical`
+
+</details>
+
 <a id="hw-win-exporter-down"></a>
 
 ### Сервер: cs2-win не отдаёт метрики
@@ -581,6 +621,26 @@ rate(node_pressure_io_stalled_seconds_total{job="node-host"}[5m]) > 0.15
 
 </details>
 
+<a id="hw-laptop-backup-old"></a>
+
+### Сервер: копия на ноутбук старше 36 часов
+
+**предупреждение** · порог: старше 36 ч, держится 30 мин · панель: [Сервер — хост, диски, контейнеры, машины рендера → Копия на ноутбук](https://metrics.samoy.love/d/samoylove-hardware?viewPanel=86)
+
+**Что случилось.** Последняя удачная копия на ноутбук старше 36 часов
+
+**Что это значит и что делать.** Копия незаменимого уезжает с сервера на ноутбук владельца каждую ночь, и удачный прогон пишет отметку в backup_laptop.prom на хосте. Отметка старая: ноутбук был выключен или скрипт упал. Смотреть last-run.log копии на ноутбуке и запустить scripts/backup-irreplaceable.sh руками. Значение около 30 лет значит, что отметки нет совсем: скрипт ни разу не дошёл до конца или файл на хосте удалён.
+
+<details><summary>Условие</summary>
+
+```promql
+((time() - max(backup_laptop_last_success_timestamp_seconds)) > 36*3600) or ((absent(backup_laptop_last_success_timestamp_seconds) * 1e9) and on() (vector(time()) > 1790942400))
+```
+
+Держится: 30m · группа `infra-hardware` · uid `hw-laptop-backup-old`
+
+</details>
+
 <a id="hw-hw-metrics-missing"></a>
 
 ### Сервер: метрики железа не собираются
@@ -658,6 +718,26 @@ increase(smart_nvme_written_bytes_total[1d]) > 1.1e12
 ```
 
 Держится: 1h · группа `infra-hardware` · uid `hw-nvme-write-rate-high`
+
+</details>
+
+<a id="hw-security-updates-pending"></a>
+
+### Сервер: обновления безопасности не ставятся
+
+**предупреждение** · порог: больше 0 все двое суток, держится 1 ч · панель: [Сервер — хост, диски, контейнеры, машины рендера → Обновления безопасности ждут](https://metrics.samoy.love/d/samoylove-hardware?viewPanel=87)
+
+**Что случилось.** На хосте двое суток ждут обновления безопасности
+
+**Что это значит и что делать.** unattended-upgrades ставит обновления безопасности каждый день, а эти ждут уже двое суток: установка падает или стоит. На хосте: apt list --upgradable, journalctl -u apt-daily-upgrade, /var/log/unattended-upgrades/unattended-upgrades.log. Отложенные пакеты (held) сюда не входят, их видно на панели отдельно.
+
+<details><summary>Условие</summary>
+
+```promql
+min_over_time(((sum(apt_upgrades_pending{job="node-host",origin=~".*-security.*"}) or vector(0)) - (sum(apt_upgrades_held{job="node-host",origin=~".*-security.*"}) or vector(0)))[2d:15m]) > 0
+```
+
+Держится: 1h · группа `infra-hardware` · uid `hw-security-updates-pending`
 
 </details>
 
@@ -801,6 +881,26 @@ rate(node_network_receive_errs_total{device!~"lo|veth.*|docker.*|br-.*"}[5m]) + 
 
 </details>
 
+<a id="hw-snapshots-stale"></a>
+
+### Сервер: снимки ZFS не делались больше суток
+
+**предупреждение** · порог: старше 28 ч, держится 30 мин · панель: [Сервер — хост, диски, контейнеры, машины рендера → Возраст последнего снимка sanoid](https://metrics.samoy.love/d/samoylove-hardware?viewPanel=85)
+
+**Что случилось.** Самому свежему снимку sanoid датасета ‹dataset› больше 28 часов
+
+**Что это значит и что делать.** Снимки делаются раз в сутки, значит, последний прогон sanoid этот датасет не снял, и точки отката за сегодня нет. На хосте: systemctl status sanoid.timer sanoid.service, journalctl -u sanoid, zfs list -t snapshot -o name,creation -s creation <датасет>. Если метки dataset нет, сборщик не смог прочитать sanoid.conf или список снимков: journalctl -u node-textfile-collect.
+
+<details><summary>Условие</summary>
+
+```promql
+((time() - zfs_snapshot_newest_timestamp_seconds{job="node-host"}) > 28*3600) or (zfs_snapshot_collect_ok{job="node-host"} == 0)
+```
+
+Держится: 30m · группа `infra-hardware` · uid `hw-snapshots-stale`
+
+</details>
+
 <a id="hw-nvme-spare-low"></a>
 
 ### Сервер: у NVMe кончается резерв блоков
@@ -858,6 +958,26 @@ rate(node_vmstat_pswpin{job="node-host"}[5m]) > 1000 and rate(node_vmstat_pswpou
 ```
 
 Держится: 10m · группа `infra-hardware` · uid `hw-memory-pressure`
+
+</details>
+
+<a id="hw-reboot-required"></a>
+
+### Сервер: хосту неделю нужна перезагрузка
+
+**предупреждение** · порог: держится 7 сут · панель: [Сервер — хост, диски, контейнеры, машины рендера → Нужна перезагрузка](https://metrics.samoy.love/d/samoylove-hardware?viewPanel=88)
+
+**Что случилось.** Установленные обновления неделю ждут перезагрузки хоста
+
+**Что это значит и что делать.** После обновления ядра или системных библиотек хост неделю не перезагружался, и исправления не действуют. Что именно ждёт: cat /var/run/reboot-required.pkgs на хосте. Перезагрузка гасит прод, CI и игры, время выбирает владелец; после неё проверить, что поднялись все инстансы с автозапуском.
+
+<details><summary>Условие</summary>
+
+```promql
+min_over_time((max(node_reboot_required{job="node-host"}) or vector(0))[7d:1h]) > 0
+```
+
+Держится: 1h · группа `infra-hardware` · uid `hw-reboot-required`
 
 </details>
 
@@ -2316,7 +2436,7 @@ probe_success == 0
 <details><summary>Условие</summary>
 
 ```promql
-node_systemd_unit_state{name=~"(snakes|chillhub-api|chillhub-admin|nginx|docker)\\.service",state="active"} == 0
+node_systemd_unit_state{job!="node-containers",name=~"(snakes|chillhub-api|chillhub-admin|nginx|docker)\\.service",state="active"} == 0
 ```
 
 Держится: 5m · группа `infra-services` · uid `infra-service-down`
@@ -2356,7 +2476,7 @@ statusbot_deploy_events_pending_age_seconds > 300
 <details><summary>Условие</summary>
 
 ```promql
-node_systemd_unit_state{state="failed"} == 1
+node_systemd_unit_state{job!="node-containers",state="failed"} == 1
 ```
 
 Держится: 5m · группа `infra-services` · uid `infra-unit-failed`

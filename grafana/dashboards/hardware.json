@@ -4114,7 +4114,7 @@
         "x": 12,
         "y": 145
       },
-      "description": "Вся память виртуалки, доступная и выделенная (commit). Выделенное выше всей — Windows живёт в файле подкачки.",
+      "description": "Вся память виртуалки, доступная и выделенная (commit). Выделенное выше всей — Windows живёт в файле подкачки.\n\nТревоги по этой панели: «Сервер: cs2-win живёт в файле подкачки» (предупреждение: выделено больше физической и больше 1000 опер/с, держится 30 мин).",
       "targets": [
         {
           "refId": "A",
@@ -4645,6 +4645,284 @@
           "mode": "multi",
           "sort": "desc"
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Копии, снимки и обновления",
+      "id": 84,
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 179
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Возраст последнего снимка sanoid",
+      "id": 85,
+      "description": "Сколько прошло с самого свежего снимка sanoid по каждому датасету из /etc/sanoid/sanoid.conf. Снимки суточные, в полночь UTC, поэтому норма — до 24 часов. Больше 28 часов — прогон sanoid этот датасет пропустил, и точки отката за сегодня нет. Пишет node-textfile-collect на хосте.\n\nТревоги по этой панели: «Сервер: снимки ZFS не делались больше суток» (предупреждение: старше 28 ч, держится 30 мин).",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 180
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time() - zfs_snapshot_newest_timestamp_seconds{job=\"node-host\"}",
+          "instant": true,
+          "legendFormat": "{{dataset}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "minVizHeight": 16,
+        "maxVizHeight": 24
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "min": 0,
+          "max": 172800,
+          "noValue": "нет данных от сборщика",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 90000
+              },
+              {
+                "color": "red",
+                "value": 100800
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Копия на ноутбук",
+      "description": "Сколько прошло с последней удачной копии незаменимого на ноутбук владельца. Копию делает Windows-машина владельца скриптом home-server scripts/backup-irreplaceable.sh и в конце пишет отметку в backup_laptop.prom на хосте. Прогон ночной: до суток — норма.\n\nТревоги по этой панели: «Сервер: копия на ноутбук старше 36 часов» (предупреждение: старше 36 ч, держится 30 мин).",
+      "id": 86,
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 12,
+        "y": 180
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time() - max(backup_laptop_last_success_timestamp_seconds)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 100800
+              },
+              {
+                "color": "red",
+                "value": 129600
+              }
+            ]
+          },
+          "noValue": "отметки нет"
+        },
+        "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Обновления безопасности ждут",
+      "description": "Сколько пакетов хоста ждут обновления из security-репозитория Ubuntu. unattended-upgrades ставит их раз в сутки, поэтому одно-два ожидающих днём — норма. Отложенные apt (held) показаны вторым числом: их автоматическая установка не берёт, и они требуют рук.\n\nТревоги по этой панели: «Сервер: обновления безопасности не ставятся» (предупреждение: больше 0 все двое суток, держится 1 ч).",
+      "id": 87,
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 16,
+        "y": 180
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(apt_upgrades_pending{job=\"node-host\",origin=~\".*-security.*\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "ждут"
+        },
+        {
+          "refId": "B",
+          "instant": true,
+          "legendFormat": "отложены",
+          "expr": "sum(apt_upgrades_held{job=\"node-host\",origin=~\".*-security.*\"}) or vector(0)"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "samoylove-prometheus"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Нужна перезагрузка",
+      "description": "Есть ли на хосте /var/run/reboot-required: установленное обновление ядра или системных библиотек начнёт действовать только после перезагрузки. Перезагрузку хоста выбирает владелец — она гасит прод, CI и игры.\n\nТревоги по этой панели: «Сервер: хосту неделю нужна перезагрузка» (предупреждение: держится 7 сут).",
+      "id": 88,
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 20,
+        "y": 180
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(node_reboot_required{job=\"node-host\"})",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "не нужна",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "нужна",
+                  "color": "#EAB839",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "noValue": "нет данных apt"
+        },
+        "overrides": []
       },
       "datasource": {
         "type": "prometheus",
