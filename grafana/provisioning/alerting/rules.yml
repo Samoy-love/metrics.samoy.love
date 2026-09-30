@@ -101,7 +101,9 @@ groups:
             datasourceUid: samoylove-prometheus
             relativeTimeRange: { from: 600, to: 0 }
             model:
-              expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.10
+              # job!="node-containers": корни cs2-render, ci-db и games (с 30.09.2026)
+              # в эту тревогу о web не входят.
+              expr: 'node_filesystem_avail_bytes{mountpoint="/",job!="node-containers"} / node_filesystem_size_bytes{mountpoint="/",job!="node-containers"} < 0.10'
               instant: true
               refId: A
           - refId: C
@@ -1151,6 +1153,186 @@ groups:
         labels: { severity: warning, area: server }
         annotations: { summary: "Часы хоста не синхронизированы", description: "Часы хоста не синхронизированы (NTP). Уехавшие часы ломают TLS, сроки токенов и сопоставление журналов.", threshold: "держится 15 мин", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#hw-time-not-synced", __dashboardUid__: "samoylove-hardware", __panelId__: "61" }
 
+      # Свежесть снимков sanoid (30.09.2026, осмотр сервера). Список датасетов
+      # сборщик node-textfile-collect (репозиторий home-server) берёт из самого
+      # sanoid.conf: всё, что там снимается по autosnap. Снимки суточные, в
+      # полночь UTC; 28 ч — одна пропущенная полночь с запасом на долгий
+      # прогон. Датасет без единого снимка сборщик пишет нулём — возраст
+      # огромный, тревога горит и на него.
+      - uid: hw-snapshots-stale
+        title: "Сервер: снимки ZFS не делались больше суток"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange: { from: 1800, to: 0 }
+            model:
+              expr: '((time() - zfs_snapshot_newest_timestamp_seconds{job="node-host"}) > 28*3600) or (zfs_snapshot_collect_ok{job="node-host"} == 0)'
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [-1000000000] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 30m
+        labels: { severity: warning, area: server }
+        annotations: { summary: "Самому свежему снимку sanoid датасета {{ $labels.dataset }} больше 28 часов", description: "Снимки делаются раз в сутки, значит, последний прогон sanoid этот датасет не снял, и точки отката за сегодня нет. На хосте: systemctl status sanoid.timer sanoid.service, journalctl -u sanoid, zfs list -t snapshot -o name,creation -s creation <датасет>. Если метки dataset нет, сборщик не смог прочитать sanoid.conf или список снимков: journalctl -u node-textfile-collect.", value: "{{ humanizeDuration $values.A.Value }}", threshold: "старше 28 ч, держится 30 мин", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#hw-snapshots-stale", __dashboardUid__: "samoylove-hardware", __panelId__: "85" }
+
+      # Копия незаменимого на ноутбук владельца (30.09.2026). Её делает
+      # Windows-машина владельца скриптом home-server
+      # scripts/backup-irreplaceable.sh, а в конце удачного прогона пишет на хост
+      # backup_laptop.prom с отметкой времени. Прогон ночной, 36 ч — одна
+      # пропущенная ночь с запасом.
+      #
+      # Пока скрипт ни разу не отработал с записью отметки, метрики нет вовсе,
+      # и её отсутствие до 02.10.2026 12:00 UTC (1790942400) — норма, а не
+      # авария: иначе тревога горела бы с первой минуты. После этой даты
+      # отсутствие метрики значит, что копия не отмечалась ни разу.
+      - uid: hw-laptop-backup-old
+        title: "Сервер: копия на ноутбук старше 36 часов"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange: { from: 1800, to: 0 }
+            model:
+              expr: '((time() - max(backup_laptop_last_success_timestamp_seconds)) > 36*3600) or ((absent(backup_laptop_last_success_timestamp_seconds) * 1e9) and on() (vector(time()) > 1790942400))'
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [-1000000000] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 30m
+        labels: { severity: warning, area: server }
+        annotations: { summary: "Последняя удачная копия на ноутбук старше 36 часов", description: "Копия незаменимого уезжает с сервера на ноутбук владельца каждую ночь, и удачный прогон пишет отметку в backup_laptop.prom на хосте. Отметка старая: ноутбук был выключен или скрипт упал. Смотреть last-run.log копии на ноутбуке и запустить scripts/backup-irreplaceable.sh руками. Значение около 30 лет значит, что отметки нет совсем: скрипт ни разу не дошёл до конца или файл на хосте удалён.", value: "{{ humanizeDuration $values.A.Value }}", threshold: "старше 36 ч, держится 30 мин", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#hw-laptop-backup-old", __dashboardUid__: "samoylove-hardware", __panelId__: "86" }
+
+      # Подкачка cs2-win (30.09.2026, осмотр сервера): больше всего NVMe
+      # изнашивает именно она, около 290 ГБ записи в сутки. Одной выделенной
+      # памяти выше физической мало: Windows выделяет с запасом, и за 28–30.09
+      # это держалось две трети времени, в том числе в часы почти без обмена.
+      # Поэтому вместе с ней — сам обмен: больше 1000 операций подкачки в
+      # секунду в среднем за полчаса. За те же трое суток такое было около
+      # половины времени — это и есть беда, которую чинят (cs2#866).
+      - uid: hw-win-commit-over-physical
+        title: "Сервер: cs2-win живёт в файле подкачки"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange: { from: 3600, to: 0 }
+            model:
+              expr: '((windows_memory_committed_bytes{job="cs2-win"} / windows_memory_physical_total_bytes{job="cs2-win"}) > 1) and on(instance) (rate(windows_memory_swap_page_operations_total{job="cs2-win"}[30m]) > 1000)'
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [-1000000000] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 30m
+        labels: { severity: warning, area: server }
+        annotations: { summary: "Windows на cs2-win выделила больше памяти, чем есть, и гоняет подкачку", description: "Выделенная память Windows больше физической, и подкачка идёт быстрее 1000 операций в секунду полчаса подряд. Каждая такая операция — запись на NVMe хоста: 30.09.2026 подкачка cs2-win давала около 290 ГБ записи в сутки. На панели видно, какой процесс раздулся: чаще всего клиент Steam (с cs2#866 он перезапускается сам) или зависшая игра. На машине: ssh render@cs2-win, Get-Process | Sort-Object WS -Descending.", value: "{{ humanizePercentage $values.A.Value }} физической", threshold: "выделено больше физической и больше 1000 опер/с, держится 30 мин", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#hw-win-commit-over-physical", __dashboardUid__: "samoylove-hardware", __panelId__: "74" }
+
+      # Обновления безопасности хоста (30.09.2026). Метрики пишет таймер пакета
+      # prometheus-node-exporter-collectors (apt.prom). unattended-upgrades
+      # ставит обновления безопасности раз в сутки, поэтому ожидающее
+      # обновление само по себе норма; двое суток подряд — значит, установка
+      # не идёт. Отложенные apt («held», чаще всего метапакеты, которым нужен
+      # новый пакет) вычитаются: их unattended-upgrades не ставит, и тревога о
+      # них горела бы вечно. Нулевых рядов пакет не пишет — отсюда
+      # «or vector(0)», иначе min_over_time не увидел бы дней без обновлений.
+      - uid: hw-security-updates-pending
+        title: "Сервер: обновления безопасности не ставятся"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange: { from: 3600, to: 0 }
+            model:
+              expr: 'min_over_time(((sum(apt_upgrades_pending{job="node-host",origin=~".*-security.*"}) or vector(0)) - (sum(apt_upgrades_held{job="node-host",origin=~".*-security.*"}) or vector(0)))[2d:15m]) > 0'
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [-1000000000] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 1h
+        labels: { severity: warning, area: server }
+        annotations: { summary: "На хосте двое суток ждут обновления безопасности", description: "unattended-upgrades ставит обновления безопасности каждый день, а эти ждут уже двое суток: установка падает или стоит. На хосте: apt list --upgradable, journalctl -u apt-daily-upgrade, /var/log/unattended-upgrades/unattended-upgrades.log. Отложенные пакеты (held) сюда не входят, их видно на панели отдельно.", value: "{{ humanize $values.A.Value }}", threshold: "больше 0 все двое суток, держится 1 ч", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#hw-security-updates-pending", __dashboardUid__: "samoylove-hardware", __panelId__: "87" }
+
+      # Хосту нужна перезагрузка (30.09.2026): /var/run/reboot-required, метрика
+      # из того же apt.prom. Перезагрузку хоста решает владелец — она гасит
+      # прод, CI и игры, — поэтому это напоминание, а не авария: неделя без
+      # перезагрузки после обновления ядра или libc.
+      - uid: hw-reboot-required
+        title: "Сервер: хосту неделю нужна перезагрузка"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange: { from: 3600, to: 0 }
+            model:
+              expr: 'min_over_time((max(node_reboot_required{job="node-host"}) or vector(0))[7d:1h]) > 0'
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [-1000000000] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 1h
+        labels: { severity: warning, area: server }
+        annotations: { summary: "Установленные обновления неделю ждут перезагрузки хоста", description: "После обновления ядра или системных библиотек хост неделю не перезагружался, и исправления не действуют. Что именно ждёт: cat /var/run/reboot-required.pkgs на хосте. Перезагрузка гасит прод, CI и игры, время выбирает владелец; после неё проверить, что поднялись все инстансы с автозапуском.", threshold: "держится 7 сут", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#hw-reboot-required", __dashboardUid__: "samoylove-hardware", __panelId__: "88" }
+
   - orgId: 1
     name: infra-services
     folder: Alerts
@@ -1164,7 +1346,7 @@ groups:
             datasourceUid: samoylove-prometheus
             relativeTimeRange: { from: 600, to: 0 }
             model:
-              expr: node_systemd_unit_state{name=~"(snakes|chillhub-api|chillhub-admin|nginx|docker)\\.service",state="active"} == 0
+              expr: node_systemd_unit_state{job!="node-containers",name=~"(snakes|chillhub-api|chillhub-admin|nginx|docker)\\.service",state="active"} == 0
               instant: true
               refId: A
           - refId: C
@@ -1193,7 +1375,7 @@ groups:
             datasourceUid: samoylove-prometheus
             relativeTimeRange: { from: 600, to: 0 }
             model:
-              expr: node_systemd_unit_state{state="failed"} == 1
+              expr: node_systemd_unit_state{job!="node-containers",state="failed"} == 1
               instant: true
               refId: A
           - refId: C
@@ -4657,6 +4839,39 @@ groups:
         for: 10m
         labels: { severity: warning, area: ci }
         annotations: { summary: "Контроллер упёрся в память, а задания ждут дольше 15 минут", description: "Задание ждёт раннер больше 15 минут, и контроллер не поднимает новых из-за памяти. Причина budget — сумма потолков раннеров дошла до ci_mem_max в /etc/ci-autoscaler.toml на хосте: поднять бюджет, если хосту хватает. Причина host — память занята не CI (рендер, Windows-машины, прод): смотреть панель «Память инстансов» на панели железа.", value: "{{ humanize $values.A.Value }}", threshold: "держится 10 мин", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#ci-autoscaler-memory-bound", __dashboardUid__: "samoylove-ci", __panelId__: "54" }
+
+      # Набор ядер раннеров (причина cpu_pool, с 30.09.2026): контроллер не
+      # поднимает раннер, потому что общий набор ядер с учётом ожидаемого
+      # расхода уже полон. Отдельно от тревоги о памяти: лечится другим
+      # (cpu_pool_max или состав набора), а тексту о памяти эта причина чужая.
+      - uid: ci-autoscaler-cpu-bound
+        title: "CI: раннерам не хватает ядер"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange: { from: 1800, to: 0 }
+            model:
+              expr: '(max(ci_autoscaler_blocked{reason="cpu_pool"}) == 1) and on() (max(ci_job_queue_oldest_seconds{pool=~"home-linux|home-light|set-heavy|set-light"}) > 900)'
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [-1000000000] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        labels: { severity: warning, area: ci }
+        annotations: { summary: "Контроллер упёрся в набор ядер, а задания ждут дольше 15 минут", description: "Задание ждёт раннер больше 15 минут, и контроллер не поднимает новый: общий набор ядер раннеров (cpu_pool) с учётом ожидаемого расхода уже занят. Если ядра набора на деле простаивают, ожидаемый расход завышен: смотреть ci_autoscaler_cpu_pool_cores (used, reserved, max) и cpu_pool_max в /etc/ci-autoscaler.toml на хосте. Если заняты, CI упирается в процессор, и новый раннер только растянул бы все задания.", value: "{{ humanize $values.A.Value }}", threshold: "держится 10 мин", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#ci-autoscaler-cpu-bound", __dashboardUid__: "samoylove-ci", __panelId__: "54" }
 
       - uid: ci-autoscaler-actions-failing
         title: "CI: контроллер не может поднять или погасить раннер"

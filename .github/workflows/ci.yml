@@ -119,6 +119,9 @@ jobs:
           echo '[]' > "$root/targets/incus.yml"
           echo '[]' > "$root/targets/cs2.yml"
           echo '[]' > "$root/targets/cs2-win.yml"
+          echo '[]' > "$root/targets/cs2-clickhouse.yml"
+          echo '[]' > "$root/targets/cs2-postgres.yml"
+          echo '[]' > "$root/targets/node-containers.yml"
 
       - name: Проверка конфигурации Prometheus
         run: |
