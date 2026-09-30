@@ -3174,7 +3174,7 @@ max by (job) (scrape_duration_seconds) > 8
 <details><summary>Условие</summary>
 
 ```promql
-time() - node_textfile_mtime_seconds{job="node-host"} > 1800
+time() - node_textfile_mtime_seconds{job="node-host",file!~".*/backup_laptop.prom"} > 1800
 ```
 
 Держится: 5m · группа `infra-monitoring` · uid `mon-host-textfile-stale`
