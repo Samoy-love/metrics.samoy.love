@@ -2838,10 +2838,17 @@ groups:
             # впервые пометил словами семь августовских матчей, чьи файлы Valve
             # давно удалила: ни одного отказа сети не было, а счётчик не вернулся
             # бы к нулю НИКОГДА — истёкшая запись лежит в базе вечно.
+            #
+            # 30.09.2026 — второе ложное срабатывание: за час был ОДИН матч,
+            # CDN дважды ответил 502, третья попытка забрала файл. Попыток
+            # три, отказов две — 67%, хотя ничего не потеряно. Нижняя граница
+            # теперь стоит на числе ОТКАЗОВ (не меньше трёх за час), а не на
+            # числе всех попыток: один матч с парой повторов её не набирает,
+            # а настоящий отказ CDN набирает за минуты — повторы идут подряд.
             datasourceUid: samoylove-prometheus
             relativeTimeRange: { from: 600, to: 0 }
             model:
-              expr: 'sum(rate(cs2_demo_download_total{result=~"нет_связи|обрыв"}[1h])) / clamp_min(sum(rate(cs2_demo_download_total[1h])), 0.0001) > 0.3 and sum(increase(cs2_demo_download_total[1h])) >= 3'
+              expr: 'sum(rate(cs2_demo_download_total{result=~"нет_связи|обрыв"}[1h])) / clamp_min(sum(rate(cs2_demo_download_total[1h])), 0.0001) > 0.3 and sum(increase(cs2_demo_download_total{result=~"нет_связи|обрыв"}[1h])) >= 3'
               instant: true
               refId: A
           - refId: C
@@ -2860,7 +2867,7 @@ groups:
         execErrState: Error
         for: 15m
         labels: { severity: warning, area: cs2 }
-        annotations: { summary: "Больше трети походов за файлом кончаются обрывом связи", description: "Матчи копятся нескачанными, а окно хранения у Valve — тридцать дней: затянувшийся отказ превращается в потерю навсегда. Считается ПО ПОПЫТКАМ, а не по состоянию в базе: состояние помнит и то, что случилось месяц назад и починке не подлежит.", value: "{{ humanizePercentage $values.A.Value }}", threshold: "не меньше 300%, держится 15 мин", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#cs2-downloads-failing", __dashboardUid__: "samoylove-cs2", __panelId__: "208" }
+        annotations: { summary: "Больше трети походов за файлом кончаются обрывом связи", description: "Матчи копятся нескачанными, а окно хранения у Valve — тридцать дней: затянувшийся отказ превращается в потерю навсегда. Считается ПО ПОПЫТКАМ, а не по состоянию в базе: состояние помнит и то, что случилось месяц назад и починке не подлежит.", value: "{{ humanizePercentage $values.A.Value }}", threshold: "больше 30% попыток и не меньше 3 отказов за час, держится 15 мин", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#cs2-downloads-failing", __dashboardUid__: "samoylove-cs2", __panelId__: "208" }
       - uid: cs2-chain-waiting
         title: "Пристрелка: матч ждёт разбора больше двух часов"
         condition: C
