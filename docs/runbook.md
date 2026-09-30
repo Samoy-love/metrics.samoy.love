@@ -1429,7 +1429,7 @@ cs2_render_engine_ok == 0
 
 ### Пристрелка: демки не скачиваются с CDN Valve
 
-**предупреждение** · порог: не меньше 300%, держится 15 мин · панель: [Пристрелка — cs.samoy.love → Походы за демками на CDN Valve](https://metrics.samoy.love/d/samoylove-cs2?viewPanel=208)
+**предупреждение** · порог: больше 30% попыток и не меньше 3 отказов за час, держится 15 мин · панель: [Пристрелка — cs.samoy.love → Походы за демками на CDN Valve](https://metrics.samoy.love/d/samoylove-cs2?viewPanel=208)
 
 **Что случилось.** Больше трети походов за файлом кончаются обрывом связи
 
@@ -1438,7 +1438,7 @@ cs2_render_engine_ok == 0
 <details><summary>Условие</summary>
 
 ```promql
-sum(rate(cs2_demo_download_total{result=~"нет_связи|обрыв"}[1h])) / clamp_min(sum(rate(cs2_demo_download_total[1h])), 0.0001) > 0.3 and sum(increase(cs2_demo_download_total[1h])) >= 3
+sum(rate(cs2_demo_download_total{result=~"нет_связи|обрыв"}[1h])) / clamp_min(sum(rate(cs2_demo_download_total[1h])), 0.0001) > 0.3 and sum(increase(cs2_demo_download_total{result=~"нет_связи|обрыв"}[1h])) >= 3
 ```
 
 Держится: 15m · группа `product-cs2` · uid `cs2-downloads-failing`
