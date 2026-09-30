@@ -5097,7 +5097,10 @@ groups:
             datasourceUid: samoylove-prometheus
             relativeTimeRange: { from: 1800, to: 0 }
             model:
-              expr: 'time() - node_textfile_mtime_seconds{job="node-host"} > 1800'
+              # backup_laptop.prom пишет ночная копия на ноутбук раз в сутки
+              # (с 30.09.2026) — её свежесть сторожит «копия на ноутбук
+              # старше 36 часов», а здесь она горела бы каждые полчаса.
+              expr: 'time() - node_textfile_mtime_seconds{job="node-host",file!~".*/backup_laptop.prom"} > 1800'
               instant: true
               refId: A
           - refId: C
