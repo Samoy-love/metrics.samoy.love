@@ -130,6 +130,16 @@ jobs:
             prom/prometheus:${{ steps.prom.outputs.version }} \
             check config /etc/prometheus/prometheus.yml
 
+      # Выражения берутся из Grafana rules.yml; фикстуры проверяют их смысл
+      # и выдержку for, включая нулевое место и исключение диагностики.
+      - name: Поведение тревог рендера
+        run: |
+          python3 ci/render-alert-tests.py --output "$RUNNER_TEMP/render-alerts"
+          docker run --rm --entrypoint promtool \
+            -v "$RUNNER_TEMP/render-alerts:/tests:ro" -w /tests \
+            prom/prometheus:${{ steps.prom.outputs.version }} \
+            test rules render-alert-tests.yml
+
       # НЕТ семантической проверки rules.yml/contactpoints.yml/policies.yml:
       # promtool и amtool разбирают формат Prometheus/Alertmanager, а не схему
       # провижининга Grafana, и готового CLI для неё под рукой нет. yamllint

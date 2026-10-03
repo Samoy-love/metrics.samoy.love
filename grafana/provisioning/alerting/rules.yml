@@ -3595,6 +3595,99 @@ groups:
       # --- Рендер клипов (план cs2 29Д). Очередь лежит в той же базе, что и
       # всё остальное, и метрики по ней считает cs2-api, а не сам работник в
       # контейнере cs2-render: у того своей мишени сборщика нет.
+
+      - uid: cs2-render-disk-unknown
+        title: 'Пристрелка: машина не измеряет свободное место'
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: (cs2_render_heartbeat_age_seconds < 180) unless on(engine) cs2_render_clips_free_bytes
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - -1000000000
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        labels:
+          severity: warning
+          area: cs2
+        annotations:
+          summary: Живая машина {{ $labels.engine }} не измеряет свободное место
+          description: Неизвестное место не означает достаточный запас. Проверить доступность каталогов клипов, работы и кэша под учётной записью работника. Windows должна использовать GetDiskFreeSpaceExW. Задания остаются в очереди до успешного замера.
+          value: неизвестно
+          threshold: нет замера у живой машины 5 минут
+          runbook_url: https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#cs2-render-disk-unknown
+          __dashboardUid__: samoylove-cs2
+          __panelId__: '912'
+      - uid: cs2-render-disk-low
+        title: 'Пристрелка: на машине рендера мало места'
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: samoylove-prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: cs2_render_clips_free_bytes < 10 * 1024^3
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - -1000000000
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                  type: query
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        labels:
+          severity: warning
+          area: cs2
+        annotations:
+          summary: На машине {{ $labels.engine }} осталось меньше 10 ГиБ
+          description: Метрика берёт минимум по каталогам клипов, работы и кэша. Проверить конкретный диск, рабочие файлы и сроки хранения. Ниже 2 ГиБ новые задания не берутся; память машины не увеличивать.
+          value: '{{ humanize1024 $values.A.Value }}Б'
+          threshold: меньше 10 ГиБ 10 минут
+          runbook_url: https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#cs2-render-disk-low
+          __dashboardUid__: samoylove-cs2
+          __panelId__: '912'
       - uid: cs2-render-failed
         title: "Пристрелка: клипы проваливаются"
         condition: C
@@ -3603,9 +3696,9 @@ groups:
             datasourceUid: samoylove-prometheus
             relativeTimeRange: { from: 600, to: 0 }
             model:
-              # Провалы копятся в базе навсегда, поэтому по приросту за час,
-              # а не по абсолютному числу: старый провал не должен гореть месяц.
-              expr: "sum(delta(cs2_render_jobs{state=\"failed\"}[1h])) >= 3"
+              # Окно завершений из render_history переживает удаление и повтор
+              # заданий; промо и диагностика не входят в пользовательскую тревогу.
+              expr: "(sum by (engine) (cs2_render_failed_window{requester=~\"user|system\",window=\"1h\"}) >= 3) and on() (cs2_chain_scrape_up == 1)"
               instant: true
               refId: A
           - refId: C
@@ -3624,7 +3717,7 @@ groups:
         execErrState: Error
         for: 10m
         labels: { severity: warning, area: cs2 }
-        annotations: { summary: "За час провалилось три и больше заданий рендера", description: "Каждое проваленное задание — клип или ролик, которого человек не получит. Одиночный провал (битая демка, падение игры) не будит: задание уже повторялось и закрыто. Какой класс ошибки вырос — «Рендер: провалы за сутки по классам»; какая машина — «Рендер: очередь по машинам».", value: "{{ humanize $values.A.Value }}", threshold: "не меньше 3, держится 10 мин", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#cs2-render-failed", __dashboardUid__: "samoylove-cs2", __panelId__: "1702" }
+        annotations: { summary: "За час провалилось три и больше заданий рендера", description: "Завершённые отказы пользовательских и автоматических заказов за час из render_history, отдельно по машине. Удаление или повтор render_jobs не вычитает уже случившиеся ошибки. Диагностические прогоны видны отдельно на дашборде и не входят в эту тревогу. Проверить классы ошибок и очередь машины; историю не удалять.", value: "{{ humanize $values.A.Value }}", threshold: "не меньше 3, держится 10 мин", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#cs2-render-failed", __dashboardUid__: "samoylove-cs2", __panelId__: "1702" }
       - uid: cs2-render-stalled
         title: "Пристрелка: заказ клипа ждёт больше получаса"
         condition: C
@@ -3740,7 +3833,7 @@ groups:
               # Доля считается сервисом по неделе завершённых заданий, так что
               # сама по себе уже сглажена; сутки ниже порога — не случайность
               # одного вечера, а причина, которая держится.
-              expr: "cs2_render_first_try_ratio{engine=~\"linux|hlae\"} < 0.9"
+              expr: "cs2_render_first_try_by_requester_ratio{engine=~\"linux|hlae\",requester=~\"user|system\"} < 0.9"
               instant: true
               refId: A
           - refId: C
@@ -3759,7 +3852,7 @@ groups:
         execErrState: Error
         for: 24h
         labels: { severity: warning, area: cs2 }
-        annotations: { summary: "Меньше 90% заданий рендера за неделю прошли с первой попытки (машина — метка engine)", description: "Клипы в итоге доходят, но каждый повтор — лишние минуты, пока игрок ждёт. Какая причина выросла, видно в cs2_render_retries_week по той же машине (панель «Рендер с первого раза: причины повторов»): перемотка, камера, падение игры, HLAE, диск, потолок времени (timeout). Частый повод — обновление CS2 или выкатка посреди задания.", value: "{{ humanizePercentage $values.A.Value }}", threshold: "меньше 90%, держится 1 сут", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#cs2-render-first-try-low", __dashboardUid__: "samoylove-cs2", __panelId__: "910" }
+        annotations: { summary: "Меньше 90% заданий рендера за неделю прошли с первой попытки (машина — метка engine)", description: "Клипы в итоге доходят, но каждый повтор — лишние минуты, пока игрок ждёт. Какая причина выросла, видно в cs2_render_retries_by_requester_week по той же машине и классу заказов (панель «Рендер с первого раза: причины повторов»): перемотка, камера, падение игры, HLAE, диск, потолок времени (timeout). Частый повод — обновление CS2 или выкатка посреди задания.", value: "{{ humanizePercentage $values.A.Value }}", threshold: "меньше 90%, держится 1 сут", runbook_url: "https://github.com/samoy-love/metrics.samoy.love/blob/main/docs/runbook.md#cs2-render-first-try-low", __dashboardUid__: "samoylove-cs2", __panelId__: "910" }
       - uid: cs2-render-engine-broken
         title: "Пристрелка: движок съёмки сломан"
         condition: C
