@@ -1,0 +1,184 @@
+# rule_uid is replaced with the actual Grafana A.expr by render-alert-tests.py.
+# Gauges come from render_history windows, not increments of the jobs queue.
+evaluation_interval: 1m
+tests:
+  - name: Diagnostic failures must not page for user or system orders
+    interval: 1m
+    input_series:
+      - series: 'cs2_chain_scrape_up'
+        values: '1+0x15'
+      - series: 'cs2_render_failed_window{engine="linux",requester="user",window="1h"}'
+        values: '2+0x15'
+      - series: 'cs2_render_failed_window{engine="linux",requester="system",window="1h"}'
+        values: '0+0x15'
+      - series: 'cs2_render_failed_window{engine="linux",requester="diagnostic",window="1h"}'
+        values: '100+0x15'
+    promql_expr_test:
+      - rule_uid: cs2-render-failed
+        eval_time: 15m
+        exp_samples: []
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: cs2-render-failed
+        exp_alerts: []
+
+  - name: Old cumulative failures in render_jobs must not count
+    interval: 1m
+    input_series:
+      - series: 'cs2_chain_scrape_up'
+        values: '1+0x15'
+      - series: 'cs2_render_jobs{engine="hlae",state="failed"}'
+        values: '900+0x15'
+      - series: 'cs2_render_failed_window{engine="hlae",requester="user",window="1h"}'
+        values: '0+0x15'
+    promql_expr_test:
+      - rule_uid: cs2-render-failed
+        eval_time: 15m
+        exp_samples: []
+
+  - name: Three history failures for real orders trigger after ten minutes
+    interval: 1m
+    input_series:
+      - series: 'cs2_chain_scrape_up'
+        values: '1+0x15'
+      - series: 'cs2_render_failed_window{engine="hlae",requester="user",window="1h"}'
+        values: '2+0x15'
+      - series: 'cs2_render_failed_window{engine="hlae",requester="system",window="1h"}'
+        values: '1+0x15'
+      - series: 'cs2_render_failed_window{engine="linux",requester="user",window="1h"}'
+        values: '1+0x15'
+    promql_expr_test:
+      - rule_uid: cs2-render-failed
+        eval_time: 10m
+        exp_samples:
+          - labels: '{engine="hlae"}'
+            value: 3
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: cs2-render-failed
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: cs2-render-failed
+        exp_alerts:
+          - exp_labels: {engine: hlae, severity: warning, area: cs2}
+
+  - name: Failed history scrape must not reuse its last failure gauge
+    interval: 1m
+    input_series:
+      - series: 'cs2_chain_scrape_up'
+        values: '0+0x15'
+      - series: 'cs2_render_failed_window{engine="linux",requester="user",window="1h"}'
+        values: '3+0x15'
+    promql_expr_test:
+      - rule_uid: cs2-render-failed
+        eval_time: 15m
+        exp_samples: []
+
+  - name: Missing free space alerts only for a live engine
+    interval: 1m
+    input_series:
+      - series: 'cs2_render_heartbeat_age_seconds{engine="linux"}'
+        values: '60+0x10'
+      - series: 'cs2_render_heartbeat_age_seconds{engine="hlae"}'
+        values: '240+0x10'
+    promql_expr_test:
+      - rule_uid: cs2-render-disk-unknown
+        eval_time: 5m
+        exp_samples:
+          - labels: 'cs2_render_heartbeat_age_seconds{engine="linux"}'
+            value: 60
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: cs2-render-disk-unknown
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: cs2-render-disk-unknown
+        exp_alerts:
+          - exp_labels: {engine: linux, severity: warning, area: cs2}
+
+  - name: Zero free bytes is known but low and must alert
+    interval: 1m
+    input_series:
+      - series: 'cs2_render_heartbeat_age_seconds{engine="hlae"}'
+        values: '45+0x15'
+      - series: 'cs2_render_clips_free_bytes{engine="hlae"}'
+        values: '0+0x15'
+    promql_expr_test:
+      - rule_uid: cs2-render-disk-unknown
+        eval_time: 10m
+        exp_samples: []
+      - rule_uid: cs2-render-disk-low
+        eval_time: 10m
+        exp_samples:
+          - labels: 'cs2_render_clips_free_bytes{engine="hlae"}'
+            value: 0
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: cs2-render-disk-low
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: cs2-render-disk-low
+        exp_alerts:
+          - exp_labels: {engine: hlae, severity: warning, area: cs2}
+
+  - name: Healthy disks produce neither missing nor low alerts
+    interval: 1m
+    input_series:
+      - series: 'cs2_render_heartbeat_age_seconds{engine="linux"}'
+        values: '30+0x15'
+      - series: 'cs2_render_clips_free_bytes{engine="linux"}'
+        values: '21474836480+0x15'
+    promql_expr_test:
+      - rule_uid: cs2-render-disk-unknown
+        eval_time: 15m
+        exp_samples: []
+      - rule_uid: cs2-render-disk-low
+        eval_time: 15m
+        exp_samples: []
+
+  - name: Diagnostic first try ratio cannot trigger production alert
+    interval: 1m
+    input_series:
+      - series: 'cs2_render_first_try_by_requester_ratio{engine="linux",requester="diagnostic"}'
+        values: '0+0x1440'
+      - series: 'cs2_render_first_try_by_requester_ratio{engine="linux",requester="user"}'
+        values: '0.95+0x1440'
+      - series: 'cs2_render_first_try_by_requester_ratio{engine="hlae",requester="system"}'
+        values: '1+0x1440'
+      - series: 'cs2_render_first_try_ratio{engine="linux"}'
+        values: '0.3+0x1440'
+    promql_expr_test:
+      - rule_uid: cs2-render-first-try-low
+        eval_time: 24h
+        exp_samples: []
+    alert_rule_test:
+      - eval_time: 24h
+        alertname: cs2-render-first-try-low
+        exp_alerts: []
+
+  - name: Low first try ratio for a real requester must persist for a day
+    interval: 1m
+    input_series:
+      - series: 'cs2_render_first_try_by_requester_ratio{engine="hlae",requester="user"}'
+        values: '0.8+0x1440'
+      - series: 'cs2_render_first_try_by_requester_ratio{engine="linux",requester="system"}'
+        values: '0.7+0x1440'
+      - series: 'cs2_render_first_try_by_requester_ratio{engine="linux",requester="user"}'
+        values: '0.9+0x1440'
+    promql_expr_test:
+      - rule_uid: cs2-render-first-try-low
+        eval_time: 24h
+        exp_samples:
+          - labels: 'cs2_render_first_try_by_requester_ratio{engine="hlae",requester="user"}'
+            value: 0.8
+          - labels: 'cs2_render_first_try_by_requester_ratio{engine="linux",requester="system"}'
+            value: 0.7
+    alert_rule_test:
+      - eval_time: 23h59m
+        alertname: cs2-render-first-try-low
+        exp_alerts: []
+      - eval_time: 24h
+        alertname: cs2-render-first-try-low
+        exp_alerts:
+          - exp_labels: {engine: hlae, requester: user, severity: warning, area: cs2}
+          - exp_labels: {engine: linux, requester: system, severity: warning, area: cs2}
